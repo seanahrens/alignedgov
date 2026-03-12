@@ -218,6 +218,7 @@ Static files deployed to Cloudflare Pages from GitHub repo. Auto-deploys on git 
 
 ```
 index.html      — Home page (link collection, compact favicon-based cards)
+orgs-test.html  — Org-centric view (test page)
 editors.html    — Editors page
 submit.html     — Submit a Resource page
 bust.html       — Cache bust trigger page
@@ -246,6 +247,18 @@ wrangler.toml   — Worker configuration
 **/submit — Submit a Resource**
 - Explains purpose and submission criteria
 - CTA button links to Google Form (opens in new tab)
+
+**/orgs-test — Org-Centric View (Test)**
+- Org cards displayed in a single-column list
+- Each org card: left side (org identity: favicon, linked name, description, category badge, key people) + right side (vertically-stacked link list with thin dividers)
+- Org name links to the org's URL
+- Links displayed as simple list items (favicon + meta + title + description), not cards — separated by thin horizontal lines
+- Hover: light background fill on both org cards and individual link items
+- Orgs sorted by power descending, row_id ascending
+- Links matched to orgs via the `org` column (URL matching with normalization)
+- Orphan links (no org match) collected into "Independent Resources" section at bottom
+- Orgs without links display cleanly with just the org identity
+- Responsive: stacks vertically on screens < 768px
 
 **/bust — Cache Bust**
 - Calls Worker `/bust` endpoint and shows confirmation
@@ -322,7 +335,7 @@ Open Claude Code in the repo folder. Describe what you want in plain English. Cl
 
 ## 13. Future Considerations
 
-- Org-centric view: cards grouped by organization with relational links (in progress)
+- Promote org-centric view from test page to primary navigation
 - RSS feed for subscribers
 - date_added column to display when a link was added
 - Power score shown publicly as visual indicator

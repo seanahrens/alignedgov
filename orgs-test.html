@@ -21,6 +21,11 @@
       border: 1px solid var(--color-border);
       border-radius: var(--radius-md);
       padding: 1.25rem 1.5rem;
+      transition: background 0.15s;
+    }
+
+    .org-card:hover {
+      background: var(--color-border-light);
     }
 
     /* Left side: org identity */
@@ -63,9 +68,6 @@
       text-decoration: none;
     }
 
-    a.org-name:hover {
-      color: var(--color-primary);
-    }
 
     .org-desc {
       font-size: 0.82rem;
@@ -89,9 +91,6 @@
       text-overflow: ellipsis;
     }
 
-    .org-url:hover {
-      text-decoration: underline;
-    }
 
     .org-badge {
       display: inline-block;
@@ -139,24 +138,22 @@
       display: flex;
       align-items: flex-start;
       gap: 0.7rem;
-      padding: 0.6rem 0;
+      padding: 0.6rem 0.5rem;
+      margin: 0 -0.5rem;
       border-bottom: 1px solid var(--color-border-light);
+      border-radius: var(--radius-sm);
       text-decoration: none;
       color: inherit;
       min-width: 0;
-    }
-
-    .org-link-item:first-child {
-      padding-top: 0;
+      transition: background 0.15s;
     }
 
     .org-link-item:last-child {
       border-bottom: none;
-      padding-bottom: 0;
     }
 
-    .org-link-item:hover .org-link-title {
-      color: var(--color-primary);
+    .org-link-item:hover {
+      background: var(--color-border-light);
     }
 
     .org-link-favicon {
@@ -229,10 +226,6 @@
       -webkit-line-clamp: 2;
       -webkit-box-orient: vertical;
       overflow: hidden;
-    }
-
-    .org-link-title {
-      transition: color 0.15s;
     }
 
     .org-section-label {

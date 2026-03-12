@@ -530,14 +530,15 @@ function decodeHTMLEntities(text) {
 function parseCSV(csvText) {
   if (!csvText || !csvText.trim()) return [];
 
-  const lines = csvText.trim().split("\n");
-  if (lines.length < 2) return []; // Need header + at least one data row
+  // Parse all fields handling quoted fields with embedded newlines
+  const records = parseCSVRecords(csvText.trim());
+  if (records.length < 2) return []; // Need header + at least one data row
 
-  const headers = parseCSVLine(lines[0]);
+  const headers = records[0];
   const rows = [];
 
-  for (let i = 1; i < lines.length; i++) {
-    const values = parseCSVLine(lines[i]);
+  for (let i = 1; i < records.length; i++) {
+    const values = records[i];
     const row = {};
     for (let j = 0; j < headers.length; j++) {
       row[headers[j].trim()] = (values[j] || "").trim();
@@ -548,39 +549,66 @@ function parseCSV(csvText) {
   return rows;
 }
 
-function parseCSVLine(line) {
-  const result = [];
-  let current = "";
+// Full RFC 4180 CSV parser — handles quoted fields with embedded newlines
+function parseCSVRecords(text) {
+  const records = [];
+  let current = [];
+  let field = "";
   let inQuotes = false;
+  let i = 0;
 
-  for (let i = 0; i < line.length; i++) {
-    const char = line[i];
+  while (i < text.length) {
+    const char = text[i];
 
     if (inQuotes) {
       if (char === '"') {
-        if (i + 1 < line.length && line[i + 1] === '"') {
-          current += '"';
-          i++; // Skip escaped quote
+        if (i + 1 < text.length && text[i + 1] === '"') {
+          field += '"';
+          i += 2;
         } else {
           inQuotes = false;
+          i++;
         }
       } else {
-        current += char;
+        field += char;
+        i++;
       }
     } else {
       if (char === '"') {
         inQuotes = true;
-      } else if (char === ",") {
-        result.push(current);
-        current = "";
+        i++;
+      } else if (char === ',') {
+        current.push(field);
+        field = "";
+        i++;
+      } else if (char === '\r') {
+        // Handle \r\n or \r
+        current.push(field);
+        field = "";
+        records.push(current);
+        current = [];
+        i++;
+        if (i < text.length && text[i] === '\n') i++;
+      } else if (char === '\n') {
+        current.push(field);
+        field = "";
+        records.push(current);
+        current = [];
+        i++;
       } else {
-        current += char;
+        field += char;
+        i++;
       }
     }
   }
 
-  result.push(current);
-  return result;
+  // Push last field/record
+  current.push(field);
+  if (current.length > 1 || current[0] !== "") {
+    records.push(current);
+  }
+
+  return records;
 }
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
