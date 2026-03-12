@@ -138,39 +138,106 @@
 
       empty.style.display = "none";
       grid.style.display = "grid";
-      grid.innerHTML = filtered.map(cardHTML).join("");
+
+      // Build cards using DOM for proper escaping (no more innerHTML bugs)
+      grid.innerHTML = "";
+      filtered.forEach(function (link) {
+        grid.appendChild(createCard(link));
+      });
     }
 
-    function cardHTML(link) {
-      const title = escapeHTML(link.title || link.url);
-      const desc = link.description ? escapeHTML(link.description) : "";
-      const category = escapeHTML(link.category);
-      const submitter = link.submitter ? escapeHTML(link.submitter) : "";
+    function getDomain(url) {
+      try {
+        return new URL(url).hostname.replace(/^www\./, "");
+      } catch {
+        return "";
+      }
+    }
 
-      const thumb = link.og_image
-        ? '<img class="card-thumb" src="' + escapeAttr(link.og_image) + '" alt="" loading="lazy" onerror="this.outerHTML=\'<div class=&quot;card-thumb-placeholder&quot;>' + PLACEHOLDER_ICON + '</div>\'">'
-        : '<div class="card-thumb-placeholder">' + PLACEHOLDER_ICON + "</div>";
+    function createCard(link) {
+      var a = document.createElement("a");
+      a.className = "card";
+      a.href = link.url;
+      a.target = "_blank";
+      a.rel = "noopener noreferrer";
 
-      const submitterLine = submitter
-        ? '<span class="card-submitter">via ' + submitter + "</span>"
-        : '<span class="card-submitter"></span>';
+      // Thumbnail
+      if (link.og_image) {
+        var img = document.createElement("img");
+        img.className = "card-thumb";
+        img.src = link.og_image;
+        img.alt = "";
+        img.loading = "lazy";
+        img.onerror = function () {
+          var placeholder = document.createElement("div");
+          placeholder.className = "card-thumb-placeholder";
+          placeholder.innerHTML = '<span class="placeholder-domain">' + escapeHTML(getDomain(link.url)) + "</span>";
+          img.replaceWith(placeholder);
+        };
+        a.appendChild(img);
+      } else {
+        var placeholder = document.createElement("div");
+        placeholder.className = "card-thumb-placeholder";
+        placeholder.innerHTML = '<span class="placeholder-domain">' + escapeHTML(getDomain(link.url)) + "</span>";
+        a.appendChild(placeholder);
+      }
 
-      return (
-        '<a class="card" href="' +
-        escapeAttr(link.url) +
-        '" target="_blank" rel="noopener noreferrer">' +
-        thumb +
-        '<div class="card-body">' +
-        '<span class="card-category">' + category + "</span>" +
-        '<h3 class="card-title">' + title + "</h3>" +
-        (desc ? '<p class="card-desc">' + desc + "</p>" : '<p class="card-desc"></p>') +
-        '<div class="card-footer">' +
-        submitterLine +
-        EXTERNAL_ICON +
-        "</div>" +
-        "</div>" +
-        "</a>"
-      );
+      // Body
+      var body = document.createElement("div");
+      body.className = "card-body";
+
+      // Site name badge (if available)
+      var source = link.site_name || getDomain(link.url);
+      if (source) {
+        var siteNameEl = document.createElement("span");
+        siteNameEl.className = "card-source";
+        siteNameEl.textContent = source;
+        body.appendChild(siteNameEl);
+      }
+
+      // Category
+      var cat = document.createElement("span");
+      cat.className = "card-category";
+      cat.textContent = link.category;
+      body.appendChild(cat);
+
+      // Title
+      var h3 = document.createElement("h3");
+      h3.className = "card-title";
+      h3.textContent = link.title || link.url;
+      body.appendChild(h3);
+
+      // Description
+      if (link.description) {
+        var desc = document.createElement("p");
+        desc.className = "card-desc";
+        desc.textContent = link.description;
+        body.appendChild(desc);
+      } else {
+        var spacer = document.createElement("p");
+        spacer.className = "card-desc";
+        body.appendChild(spacer);
+      }
+
+      // Footer
+      var footer = document.createElement("div");
+      footer.className = "card-footer";
+
+      var sub = document.createElement("span");
+      sub.className = "card-submitter";
+      if (link.submitter) {
+        sub.textContent = "via " + link.submitter;
+      }
+      footer.appendChild(sub);
+
+      var iconSpan = document.createElement("span");
+      iconSpan.innerHTML = EXTERNAL_ICON;
+      footer.appendChild(iconSpan);
+
+      body.appendChild(footer);
+      a.appendChild(body);
+
+      return a;
     }
 
     function escapeHTML(str) {

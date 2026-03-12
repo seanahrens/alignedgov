@@ -107,12 +107,14 @@ async function handleLinks(env, ctx) {
     let title = null;
     let description = null;
     let og_image = null;
+    let site_name = null;
     let date_scraped = null;
 
     if (ogData) {
       title = ogData.title || null;
       description = ogData.description || null;
       og_image = ogData.og_image || null;
+      site_name = ogData.site_name || null;
       date_scraped = ogData.date_scraped || null;
 
       // Update row_id if it changed (row moved in sheet)
@@ -122,9 +124,10 @@ async function handleLinks(env, ctx) {
       }
     }
 
-    // Check if we need to scrape (missing or stale > 30 days)
+    // Check if we need to scrape (missing, stale > 30 days, or missing site_name from old scrape)
     const needsScrape =
-      !ogData || !date_scraped || isStale(date_scraped, OG_STALE_DAYS);
+      !ogData || !date_scraped || isStale(date_scraped, OG_STALE_DAYS) ||
+      (!ogData.site_name && !ogData._v2);
 
     if (needsScrape) {
       // Scrape asynchronously — don't block response
@@ -142,6 +145,7 @@ async function handleLinks(env, ctx) {
       title,
       description,
       og_image,
+      site_name,
       row_id: rowId,
     });
   }
@@ -210,8 +214,10 @@ async function scrapeAndStore(env, kvKey, url, rowId) {
       title: ogData.title || null,
       description: ogData.description || null,
       og_image: ogData.og_image || null,
+      site_name: ogData.site_name || null,
       date_scraped: new Date().toISOString(),
       row_id: rowId,
+      _v2: true,
     };
     await env.KV.put(kvKey, JSON.stringify(entry));
   } catch (e) {
@@ -220,8 +226,10 @@ async function scrapeAndStore(env, kvKey, url, rowId) {
       title: null,
       description: null,
       og_image: null,
+      site_name: null,
       date_scraped: new Date().toISOString(),
       row_id: rowId,
+      _v2: true,
     };
     await env.KV.put(kvKey, JSON.stringify(entry));
   }
@@ -262,7 +270,7 @@ async function scrapeOG(targetUrl) {
       }
 
       const html = await resp.text();
-      return parseOGFromHTML(html);
+      return parseOGFromHTML(html, currentUrl);
     } catch (e) {
       clearTimeout(timeoutId);
       return { title: null, description: null, og_image: null };
@@ -272,8 +280,19 @@ async function scrapeOG(targetUrl) {
   return { title: null, description: null, og_image: null };
 }
 
-function parseOGFromHTML(html) {
-  const result = { title: null, description: null, og_image: null };
+function parseOGFromHTML(html, targetUrl) {
+  const result = { title: null, description: null, og_image: null, site_name: null };
+
+  // Parse og:site_name
+  const ogSiteNameMatch = html.match(
+    /<meta[^>]+property=["']og:site_name["'][^>]+content=["']([^"']*?)["']/i
+  ) ||
+    html.match(
+      /<meta[^>]+content=["']([^"']*?)["'][^>]+property=["']og:site_name["']/i
+    );
+  if (ogSiteNameMatch) {
+    result.site_name = decodeHTMLEntities(ogSiteNameMatch[1]);
+  }
 
   // Parse og:title
   const ogTitleMatch = html.match(
@@ -282,8 +301,32 @@ function parseOGFromHTML(html) {
     html.match(
       /<meta[^>]+content=["']([^"']*?)["'][^>]+property=["']og:title["']/i
     );
-  if (ogTitleMatch) {
-    result.title = decodeHTMLEntities(ogTitleMatch[1]);
+  let ogTitle = ogTitleMatch ? decodeHTMLEntities(ogTitleMatch[1]) : null;
+
+  // Parse <title> tag
+  const titleTagMatch = html.match(/<title[^>]*>([^<]*)<\/title>/i);
+  const pageTitle = titleTagMatch ? decodeHTMLEntities(titleTagMatch[1].trim()) : null;
+
+  // Use og:title unless it's too generic (matches domain or is very short)
+  // In that case prefer the <title> tag or URL slug
+  if (ogTitle && isGenericTitle(ogTitle, targetUrl)) {
+    // og:title is generic like "Amazon" or "Notion" — try better alternatives
+    const slugTitle = extractTitleFromSlug(targetUrl);
+    if (pageTitle && !isGenericTitle(pageTitle, targetUrl) && pageTitle.length > ogTitle.length) {
+      result.title = pageTitle;
+    } else if (slugTitle) {
+      result.title = slugTitle;
+    } else {
+      result.title = pageTitle || ogTitle;
+    }
+  } else {
+    result.title = ogTitle || pageTitle || null;
+  }
+
+  // Final fallback: if still no good title, try URL slug
+  if (!result.title || isGenericTitle(result.title, targetUrl)) {
+    const slugTitle = extractTitleFromSlug(targetUrl);
+    if (slugTitle) result.title = slugTitle;
   }
 
   // Parse og:description
@@ -305,15 +348,14 @@ function parseOGFromHTML(html) {
       /<meta[^>]+content=["']([^"']*?)["'][^>]+property=["']og:image["']/i
     );
   if (ogImageMatch) {
-    result.og_image = decodeHTMLEntities(ogImageMatch[1]);
-  }
-
-  // Fallback: <title> tag if og:title missing
-  if (!result.title) {
-    const titleMatch = html.match(/<title[^>]*>([^<]*)<\/title>/i);
-    if (titleMatch) {
-      result.title = decodeHTMLEntities(titleMatch[1].trim());
+    let imageUrl = decodeHTMLEntities(ogImageMatch[1]);
+    // Resolve relative image URLs to absolute
+    if (imageUrl && !imageUrl.startsWith("http")) {
+      try {
+        imageUrl = new URL(imageUrl, targetUrl).href;
+      } catch {}
     }
+    result.og_image = imageUrl;
   }
 
   // Fallback: meta description if og:description missing
@@ -329,7 +371,70 @@ function parseOGFromHTML(html) {
     }
   }
 
+  // If description matches title exactly, null it out to avoid redundancy
+  if (result.description && result.title &&
+      result.description.trim().toLowerCase() === result.title.trim().toLowerCase()) {
+    result.description = null;
+  }
+
   return result;
+}
+
+// Check if an og:title is too generic (just a brand name matching the domain,
+// or a known SPA marketing title)
+const GENERIC_TITLE_PATTERNS = [
+  /^notion\b/i,
+  /^notion\s*[–—-]/i,
+  /the all-in-one workspace/i,
+  /^amazon$/i,
+  /^linkedin$/i,
+  /^airtable$/i,
+  /^google\s*(sheets|docs|drive)?$/i,
+];
+
+function isGenericTitle(title, url) {
+  if (!title || !url) return false;
+  const t = title.trim().toLowerCase();
+
+  // Check against known generic patterns
+  for (const pattern of GENERIC_TITLE_PATTERNS) {
+    if (pattern.test(title.trim())) return true;
+  }
+
+  // Check if title is very short and matches domain
+  if (t.length <= 15) {
+    try {
+      const hostname = new URL(url).hostname.replace(/^www\./, "").split(".")[0].toLowerCase();
+      if (t === hostname || t.includes(hostname)) return true;
+    } catch {}
+  }
+  return false;
+}
+
+// Extract a human-readable title from a URL slug (e.g., Notion pages)
+// "Remodeling-Democracy-for-the-AI-Age-The-Case-for-R-D-Now-3068c95..."
+// → "Remodeling Democracy for the AI Age The Case for R D Now"
+function extractTitleFromSlug(url) {
+  try {
+    const pathname = new URL(url).pathname;
+    // Get the last path segment
+    const segments = pathname.split("/").filter(Boolean);
+    const last = segments[segments.length - 1] || "";
+
+    // Remove trailing hex ID (Notion-style: 32 hex chars at end, possibly with hyphens)
+    const cleaned = last.replace(/[-]?[0-9a-f]{32}$/i, "");
+    if (!cleaned) return null;
+
+    // Convert hyphens to spaces
+    const title = cleaned.replace(/-/g, " ").trim();
+
+    // Only use it if it's reasonably long (not just "index" or "home")
+    if (title.length < 10) return null;
+
+    return title;
+  } catch {
+    return null;
+  }
 }
 
 function decodeHTMLEntities(text) {
