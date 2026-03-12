@@ -4,7 +4,7 @@
 
 const MERGED_CACHE_KEY = "merged_dataset_v1";
 const MERGED_CACHE_TTL = 86400; // 24 hours in seconds
-const OG_STALE_DAYS = 30;
+const OG_STALE_DAYS = 7;
 const SCRAPE_TIMEOUT = 5000; // 5 seconds per URL
 const MAX_REDIRECTS = 2;
 
