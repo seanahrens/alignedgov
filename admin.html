@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin — AI x Democracy Catalog</title>
+  <meta name="robots" content="noindex, nofollow">
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+  <link rel="stylesheet" href="styles.css">
+  <style>
+    .admin-content {
+      max-width: 600px;
+      margin: 0 auto;
+    }
+    .admin-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 1rem 1.25rem;
+      background: var(--color-surface);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-md);
+      margin-bottom: 0.75rem;
+    }
+    .admin-item-label {
+      font-size: 0.95rem;
+      font-weight: 600;
+      color: var(--color-text);
+    }
+    .admin-item-desc {
+      font-size: 0.82rem;
+      color: var(--color-text-secondary);
+      margin-top: 0.15rem;
+    }
+    .admin-item a {
+      font-size: 0.88rem;
+      font-weight: 600;
+      color: var(--color-primary);
+      white-space: nowrap;
+    }
+    .bust-btn {
+      background: var(--color-primary);
+      color: #fff;
+      border: none;
+      padding: 0.5rem 1.25rem;
+      border-radius: 50px;
+      font-size: 0.88rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: opacity 0.15s;
+    }
+    .bust-btn:hover { opacity: 0.85; }
+    .bust-btn:disabled { opacity: 0.5; cursor: default; }
+    .bust-status {
+      font-size: 0.82rem;
+      color: var(--color-text-secondary);
+      margin-top: 0.5rem;
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+
+  <nav class="nav" role="navigation" aria-label="Main navigation">
+    <div class="nav-inner">
+      <a href="/" class="nav-brand" id="nav-brand"></a>
+      <ul class="nav-links">
+        <li><a href="/">Resource List</a></li>
+        <li><a href="/about.html">About</a></li>
+        <li><a href="/submit.html">Submit a Resource</a></li>
+      </ul>
+    </div>
+  </nav>
+
+  <main class="container">
+    <div class="hero">
+      <h1>Admin</h1>
+    </div>
+
+    <div class="admin-content">
+
+      <div class="admin-item">
+        <div>
+          <div class="admin-item-label">Bust Cache</div>
+          <div class="admin-item-desc">Force fresh data on next page load</div>
+        </div>
+        <button class="bust-btn" id="bust-btn" onclick="bustCache()">Bust</button>
+      </div>
+      <div class="bust-status" id="bust-status"></div>
+
+      <div class="admin-item">
+        <div>
+          <div class="admin-item-label">CRM</div>
+          <div class="admin-item-desc">Master spreadsheet — links, orgs, editors, config</div>
+        </div>
+        <a href="https://docs.google.com/spreadsheets/d/1jDfHpPcuQeW78y5V6rBJALCNKd62AJPrKnUdI8JFytg/edit?usp=sharing" target="_blank" rel="noopener noreferrer">Open &rarr;</a>
+      </div>
+
+      <div class="admin-item">
+        <div>
+          <div class="admin-item-label">Submit Resource Form</div>
+          <div class="admin-item-desc">Edit the public submission form</div>
+        </div>
+        <a href="https://docs.google.com/forms/d/1Eg7Ww3n7xwmkef8cKq-WUij92ucKwERCsiFhmaxTMWo/edit" target="_blank" rel="noopener noreferrer">Edit &rarr;</a>
+      </div>
+
+      <div class="admin-item">
+        <div>
+          <div class="admin-item-label">Apply to be an Editor Form</div>
+          <div class="admin-item-desc">Edit the editor application form</div>
+        </div>
+        <a href="https://docs.google.com/forms/d/1kSHsBTI6jeAP1-wtfNvQiSzZsbhB19GrDoeXl-R7dj0/edit" target="_blank" rel="noopener noreferrer">Edit &rarr;</a>
+      </div>
+
+    </div>
+  </main>
+
+  <footer class="site-footer">
+    <p id="site-footer"></p>
+  </footer>
+
+  <script>
+    var WORKER_URL = "https://alignedgov-worker.seanahrens.workers.dev";
+
+    fetch(WORKER_URL + "/api/links")
+      .then(function(r) { return r.json(); })
+      .then(function(data) {
+        var config = data.config || {};
+        if (config.title) document.getElementById("nav-brand").textContent = config.title;
+        if (config.footer) document.getElementById("site-footer").textContent = config.footer;
+      })
+      .catch(function() {});
+
+    function bustCache() {
+      var btn = document.getElementById("bust-btn");
+      var status = document.getElementById("bust-status");
+      btn.disabled = true;
+      btn.textContent = "Busting...";
+      status.textContent = "";
+
+      fetch(WORKER_URL + "/bust")
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+          btn.textContent = "Done";
+          status.textContent = data.message || "Cache purged.";
+          setTimeout(function() { btn.disabled = false; btn.textContent = "Bust"; }, 3000);
+        })
+        .catch(function() {
+          btn.textContent = "Failed";
+          status.textContent = "Something went wrong.";
+          setTimeout(function() { btn.disabled = false; btn.textContent = "Bust"; }, 3000);
+        });
+    }
+  </script>
+</body>
+</html>
