@@ -168,119 +168,24 @@
   </nav>
 
   <main class="container">
+    <!-- hero-section with SVG background commented out for now
     <div class="hero-section">
-      <!-- Animated network background -->
       <div class="hero-bg" id="hero-bg">
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 400" preserveAspectRatio="xMidYMid slice">
-          <defs>
-            <radialGradient id="bg-grad" cx="50%" cy="40%" r="65%">
-              <stop offset="0%" stop-color="#e8edf8" />
-              <stop offset="100%" stop-color="#f8f9fa" />
-            </radialGradient>
-            <radialGradient id="node-grad" cx="50%" cy="30%" r="50%">
-              <stop offset="0%" stop-color="#4a7af7" />
-              <stop offset="100%" stop-color="#2d5be3" />
-            </radialGradient>
-            <linearGradient id="line-grad" x1="0%" y1="0%" x2="100%" y2="0%">
-              <stop offset="0%" stop-color="#2d5be3" stop-opacity="0.08" />
-              <stop offset="50%" stop-color="#2d5be3" stop-opacity="0.18" />
-              <stop offset="100%" stop-color="#2d5be3" stop-opacity="0.08" />
-            </linearGradient>
-            <radialGradient id="center-fade" cx="50%" cy="45%" r="38%">
-              <stop offset="0%" stop-color="#f8f9fa" stop-opacity="0.92" />
-              <stop offset="60%" stop-color="#f8f9fa" stop-opacity="0.55" />
-              <stop offset="100%" stop-color="#f8f9fa" stop-opacity="0" />
-            </radialGradient>
-          </defs>
-          <rect width="1200" height="400" fill="url(#bg-grad)" />
-          <!-- Radial fade keeps center clear for text readability -->
-          <rect width="1200" height="400" fill="url(#center-fade)" />
-
-          <!-- Connection lines -->
-          <g stroke="url(#line-grad)" stroke-width="1.5" fill="none">
-            <line x1="120" y1="180" x2="300" y2="120" />
-            <line x1="300" y1="120" x2="480" y2="200" />
-            <line x1="480" y1="200" x2="600" y2="100" />
-            <line x1="600" y1="100" x2="750" y2="170" />
-            <line x1="750" y1="170" x2="900" y2="110" />
-            <line x1="900" y1="110" x2="1080" y2="190" />
-            <line x1="300" y1="120" x2="600" y2="100" />
-            <line x1="480" y1="200" x2="750" y2="170" />
-            <line x1="600" y1="100" x2="900" y2="110" />
-            <line x1="120" y1="180" x2="480" y2="200" />
-            <line x1="750" y1="170" x2="1080" y2="190" />
-            <!-- Cross connections -->
-            <line x1="200" y1="280" x2="400" y2="300" />
-            <line x1="400" y1="300" x2="600" y2="310" />
-            <line x1="600" y1="310" x2="800" y2="290" />
-            <line x1="800" y1="290" x2="1000" y2="300" />
-            <!-- Vertical bridges -->
-            <line x1="300" y1="120" x2="400" y2="300" />
-            <line x1="600" y1="100" x2="600" y2="310" />
-            <line x1="900" y1="110" x2="1000" y2="300" />
-            <line x1="480" y1="200" x2="400" y2="300" />
-            <line x1="750" y1="170" x2="800" y2="290" />
-          </g>
-
-          <!-- People silhouettes (simplified abstract figures) -->
-          <g opacity="0.12" fill="#2d5be3">
-            <!-- Figure 1 -->
-            <circle cx="120" cy="165" r="10" />
-            <path d="M108,180 Q120,190 132,180 L130,205 Q120,210 110,205Z" />
-            <!-- Figure 2 -->
-            <circle cx="480" cy="185" r="10" />
-            <path d="M468,200 Q480,210 492,200 L490,225 Q480,230 470,225Z" />
-            <!-- Figure 3 -->
-            <circle cx="750" cy="155" r="10" />
-            <path d="M738,170 Q750,180 762,170 L760,195 Q750,200 740,195Z" />
-            <!-- Figure 4 -->
-            <circle cx="1080" cy="175" r="10" />
-            <path d="M1068,190 Q1080,200 1092,190 L1090,215 Q1080,220 1070,215Z" />
-            <!-- Figure 5 -->
-            <circle cx="400" cy="285" r="10" />
-            <path d="M388,300 Q400,310 412,300 L410,325 Q400,330 390,325Z" />
-            <!-- Figure 6 -->
-            <circle cx="800" cy="275" r="10" />
-            <path d="M788,290 Q800,300 812,290 L810,315 Q800,320 790,315Z" />
-          </g>
-
-          <!-- Network nodes -->
-          <g fill="url(#node-grad)" opacity="0.25">
-            <circle cx="300" cy="120" r="5" />
-            <circle cx="600" cy="100" r="6" />
-            <circle cx="900" cy="110" r="5" />
-            <circle cx="200" cy="280" r="3.5" />
-            <circle cx="600" cy="310" r="4" />
-            <circle cx="1000" cy="300" r="3.5" />
-          </g>
-
-          <!-- Pulse rings on key nodes -->
-          <g fill="none" stroke="#2d5be3" stroke-width="1">
-            <circle cx="600" cy="100" r="6" opacity="0.15">
-              <animate attributeName="r" from="6" to="22" dur="3s" repeatCount="indefinite" />
-              <animate attributeName="opacity" from="0.15" to="0" dur="3s" repeatCount="indefinite" />
-            </circle>
-            <circle cx="300" cy="120" r="5" opacity="0.12">
-              <animate attributeName="r" from="5" to="18" dur="3.5s" begin="1s" repeatCount="indefinite" />
-              <animate attributeName="opacity" from="0.12" to="0" dur="3.5s" begin="1s" repeatCount="indefinite" />
-            </circle>
-            <circle cx="900" cy="110" r="5" opacity="0.12">
-              <animate attributeName="r" from="5" to="18" dur="4s" begin="0.5s" repeatCount="indefinite" />
-              <animate attributeName="opacity" from="0.12" to="0" dur="4s" begin="0.5s" repeatCount="indefinite" />
-            </circle>
-          </g>
+          ...SVG content preserved in git history (commit ed2d6df)...
         </svg>
       </div>
-
-      <div class="hero">
-        <h1 id="site-heading">Aligned Gov</h1>
-        <p class="subheading" id="site-subheading">aligned AI requires aligned governance</p>
-        <p class="description" id="site-description">This is an ecosystem map of orgs, people, and papers focused on the intersection of AI &amp; Democracy</p>
-      </div>
-
-      <!-- Category Filters -->
-      <div class="filters" id="filters" role="group" aria-label="Filter by category"></div>
     </div>
+    -->
+
+    <div class="hero">
+      <h1 id="site-heading">Aligned Gov</h1>
+      <p class="subheading" id="site-subheading">aligned AI requires aligned governance</p>
+      <p class="description" id="site-description">This is an ecosystem map of orgs, people, and papers focused on the intersection of AI &amp; Democracy</p>
+    </div>
+
+    <!-- Category Filters -->
+    <div class="filters" id="filters" role="group" aria-label="Filter by category"></div>
 
     <!-- Loading State -->
     <div class="loading" id="loading">
@@ -466,36 +371,8 @@
 
     init();
 
-    // ─── Parallax + perspective scroll effect ───
-    (function() {
-      var heroBg = document.getElementById("hero-bg");
-      var heroSection = document.querySelector(".hero-section");
-      if (!heroBg || !heroSection) return;
-
-      var ticking = false;
-      window.addEventListener("scroll", function() {
-        if (!ticking) {
-          requestAnimationFrame(function() {
-            var rect = heroSection.getBoundingClientRect();
-            var sectionH = heroSection.offsetHeight;
-            // How far we've scrolled past the top of the section (0 = top visible, 1 = fully scrolled past)
-            var progress = Math.max(0, Math.min(1, -rect.top / sectionH));
-            // Parallax: background moves slower than scroll
-            var translateY = progress * 60;
-            // Subtle scale-down as you scroll
-            var scale = 1.15 - progress * 0.1;
-            // Slight perspective tilt
-            var rotateX = progress * 2.5;
-            heroBg.style.transform =
-              "perspective(1200px) translateY(" + translateY + "px) scale(" + scale + ") rotateX(" + rotateX + "deg)";
-            // Fade out slightly
-            heroBg.style.opacity = 1 - progress * 0.4;
-            ticking = false;
-          });
-          ticking = true;
-        }
-      });
-    })();
+    // Parallax scroll effect commented out (hero image disabled)
+    // See git commit ed2d6df for full implementation
   </script>
 </body>
 </html>
