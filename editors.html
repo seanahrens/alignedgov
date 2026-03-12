@@ -73,7 +73,11 @@
       const name = escapeHTML(editor.name);
       const role = editor.role ? escapeHTML(editor.role) : "";
       const bio = editor.bio ? escapeHTML(editor.bio) : "";
-      const url = editor.url || "";
+      let url = editor.url || "";
+      // Ensure URL has protocol so it doesn't become a relative link
+      if (url && !url.startsWith("http://") && !url.startsWith("https://")) {
+        url = "https://" + url;
+      }
 
       // Photo: use photo_url if present, otherwise Gravatar from email
       let avatarSrc;
