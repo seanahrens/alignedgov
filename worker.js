@@ -8,11 +8,13 @@ const OG_STALE_DAYS = 7;
 const SCRAPE_TIMEOUT = 5000; // 5 seconds per URL
 const MAX_REDIRECTS = 2;
 
-// CORS origins — update to alignedgov.org after domain cutover
+// CORS origins
 const ALLOWED_ORIGINS = [
   "https://alignedgov.pages.dev",
   "https://alignedgov.org",
   "https://www.alignedgov.org",
+  "https://aixdemocracy.fyi",
+  "https://www.aixdemocracy.fyi",
 ];
 
 export default {
