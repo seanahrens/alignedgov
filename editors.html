@@ -15,14 +15,6 @@
   <link rel="icon" type="image/svg+xml" href="/favicon.svg">
   <link rel="stylesheet" href="styles.css">
   <style>
-    .editors-ethos {
-      max-width: 640px;
-      margin: 0 auto 2.5rem;
-      text-align: center;
-      font-size: 0.95rem;
-      color: var(--color-text-secondary);
-      line-height: 1.65;
-    }
     /* Center single card instead of stretching across grid */
     .editor-grid {
       justify-items: center;
@@ -31,16 +23,17 @@
       max-width: 420px;
       width: 100%;
     }
-    .editors-cta {
+    .editors-ethos {
+      max-width: 640px;
+      margin: 2.5rem auto 0;
       text-align: center;
-      margin-top: 3rem;
-      padding-top: 2rem;
-      border-top: 1px solid var(--color-border-light);
-    }
-    .editors-cta p {
       font-size: 0.95rem;
       color: var(--color-text-secondary);
-      margin-bottom: 0.75rem;
+      line-height: 1.65;
+    }
+    .editors-ethos a {
+      color: var(--color-primary);
+      font-weight: 500;
     }
   </style>
 </head>
@@ -61,11 +54,6 @@
   <main class="container">
     <div class="hero">
       <h1>Editors</h1>
-      <p class="description">The people curating and maintaining the AlignedGov ecosystem map.</p>
-    </div>
-
-    <div class="editors-ethos">
-      <p>This map is built in the open. We believe the conversation around AI and democracy belongs to everyone working on it — not a single organization or perspective. Our editors are rotating stewards, not gatekeepers. They bring domain knowledge and care to keep the collection high-signal and representative, while ensuring every serious effort in this space has a place here.</p>
     </div>
 
     <!-- Loading State -->
@@ -79,9 +67,9 @@
       <!-- Populated by JS -->
     </div>
 
-    <div class="editors-cta">
-      <p>Interested in helping curate this map?</p>
-      <a class="btn-primary" href="https://forms.gle/dcZnTDsyLitvhB2x6" target="_blank" rel="noopener noreferrer">Apply to Be a Rotating Editor</a>
+    <div class="editors-ethos">
+      <p>This map is built in the open. We believe the conversation around AI and democracy belongs to everyone working on it — not a single organization or perspective. Our editors are rotating stewards, not gatekeepers. They bring domain knowledge and care to keep the collection high-signal and representative, while ensuring every serious effort in this space has a place here.</p>
+      <p><a href="https://forms.gle/dcZnTDsyLitvhB2x6" target="_blank" rel="noopener noreferrer">Apply to be a rotating editor</a></p>
     </div>
   </main>
 
