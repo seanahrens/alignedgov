@@ -154,6 +154,7 @@
 
     .org-link-item:hover {
       background: var(--color-border-light);
+      text-decoration: none;
     }
 
     .org-link-favicon {
@@ -525,11 +526,6 @@
       sourceEl.className = "org-link-source";
       sourceEl.textContent = source;
       meta.appendChild(sourceEl);
-
-      var badge = document.createElement("span");
-      badge.className = "org-link-badge";
-      badge.textContent = link.category;
-      meta.appendChild(badge);
 
       text.appendChild(meta);
 
