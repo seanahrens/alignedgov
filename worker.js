@@ -75,9 +75,10 @@ async function handleLinks(env, ctx) {
   }
 
   // Cache miss — full fetch + enrichment cycle
-  const [linksCSV, editorsCSV] = await Promise.all([
+  const [linksCSV, editorsCSV, configCSV] = await Promise.all([
     fetchText(env.LINKS_CSV_URL),
     fetchText(env.EDITORS_CSV_URL),
+    fetchText(env.CONFIG_CSV_URL).catch(() => ""),
   ]);
 
   const links = parseCSV(linksCSV);
@@ -175,9 +176,19 @@ async function handleLinks(env, ctx) {
     });
   }
 
+  // Process config (key/value pairs from Config sheet)
+  const configRows = parseCSV(configCSV);
+  const config = {};
+  for (const row of configRows) {
+    const key = (row.key || "").trim();
+    const value = (row.value || "").trim();
+    if (key) config[key] = value;
+  }
+
   const dataset = {
     links: processedLinks,
     editors: processedEditors,
+    config,
   };
 
   // Cache merged dataset with 24hr TTL

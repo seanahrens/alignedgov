@@ -139,18 +139,19 @@
     <div class="nav-inner">
       <a href="/" class="nav-brand">Aligned Gov</a>
       <ul class="nav-links">
-        <li><a href="/">Links (current)</a></li>
-        <li><a href="/test.html" class="active">Layout Test</a></li>
+        <li><a href="/">Links A</a></li>
+        <li><a href="/test.html" class="active">Links B</a></li>
         <li><a href="/editors.html">Editors</a></li>
+        <li><a href="/submit.html">Submit a Resource</a></li>
       </ul>
     </div>
   </nav>
 
   <main class="container">
     <div class="hero">
-      <h1>Aligned Gov</h1>
-      <p class="subheading">aligned AI requires aligned governance</p>
-      <p class="description">This is an ecosystem map of orgs, people, and papers focused on the intersection of AI &amp; Democracy</p>
+      <h1 id="site-heading">Aligned Gov</h1>
+      <p class="subheading" id="site-subheading">aligned AI requires aligned governance</p>
+      <p class="description" id="site-description">This is an ecosystem map of orgs, people, and papers focused on the intersection of AI &amp; Democracy</p>
     </div>
 
     <!-- Category Filters -->
@@ -205,6 +206,11 @@
         var resp = await fetch(WORKER_URL + "/api/links");
         var data = await resp.json();
         allLinks = data.links || [];
+        // Apply dynamic config if available
+        var config = data.config || {};
+        if (config.heading) document.getElementById("site-heading").textContent = config.heading;
+        if (config.subheading) document.getElementById("site-subheading").textContent = config.subheading;
+        if (config.description) document.getElementById("site-description").textContent = config.description;
         renderFilters();
         renderLinks();
       } catch (err) {
