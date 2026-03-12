@@ -278,9 +278,8 @@ img {
 }
 
 .card-source {
-  font-size: 0.75rem;
+  font-size: 0.78rem;
   color: var(--color-text-muted);
-  margin-bottom: 0.3rem;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -330,11 +329,8 @@ img {
   justify-content: space-between;
   padding-top: 0.5rem;
   border-top: 1px solid var(--color-border-light);
-}
-
-.card-submitter {
-  font-size: 0.78rem;
-  color: var(--color-text-muted);
+  margin-top: auto;
+  min-height: 28px;
 }
 
 .card-external-icon {

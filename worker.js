@@ -28,7 +28,7 @@ export default {
 
     if (url.pathname === "/api/links") {
       response = await handleLinks(env, ctx);
-    } else if (url.pathname === "/api/purge") {
+    } else if (url.pathname === "/api/purge" || url.pathname === "/bust") {
       response = await handlePurge(url, env);
     } else {
       response = new Response("Not Found", { status: 404 });
@@ -98,7 +98,6 @@ async function handleLinks(env, ctx) {
     const category = (row.category || "").trim() || "Uncategorized";
     const power = parseInt(row.power, 10) || 0;
     const notes = (row.notes || "").trim() || null;
-    const submitter = (row.submitter || "").trim() || null;
 
     // Look up OG enrichment from KV
     const kvKey = await hashUrl(url);
@@ -141,7 +140,6 @@ async function handleLinks(env, ctx) {
       category,
       power,
       notes,
-      submitter,
       title,
       description,
       og_image,
@@ -195,14 +193,8 @@ async function handleLinks(env, ctx) {
 // ─── GET /api/purge?key=SECRET ──────────────────────────────────────────────
 
 async function handlePurge(url, env) {
-  const key = url.searchParams.get("key");
-
-  if (!key || key !== env.PURGE_SECRET) {
-    return new Response("Unauthorized", { status: 401 });
-  }
-
   await env.KV.delete(MERGED_CACHE_KEY);
-  return jsonResponse({ success: true, message: "Cache purged" });
+  return jsonResponse({ success: true, message: "Cache purged. Next page load will fetch fresh data." });
 }
 
 // ─── OG Scraper ─────────────────────────────────────────────────────────────
