@@ -95,6 +95,9 @@ async function handleLinks(env, ctx) {
     // Skip rows with blank URL
     if (!url) continue;
 
+    // Skip soft-deleted rows
+    if ((row.deleted_at || "").trim()) continue;
+
     const rowId = i + 1; // 1-based, excluding header
     const category = (row.category || "").trim() || "Uncategorized";
     const power = parseInt(row.power, 10) || 0;
