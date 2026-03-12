@@ -2,8 +2,6 @@
 // Fetches link + editor data from Google Sheets, enriches with OG metadata,
 // caches in KV, and serves JSON API to the frontend.
 
-const MERGED_CACHE_KEY = "merged_dataset_v1";
-const MERGED_CACHE_TTL = 86400; // 24 hours in seconds
 const OG_STALE_DAYS = 7;
 const SCRAPE_TIMEOUT = 5000; // 5 seconds per URL
 const MAX_REDIRECTS = 2;
@@ -68,13 +66,7 @@ function handleCors(request, response) {
 // ─── GET /api/links ─────────────────────────────────────────────────────────
 
 async function handleLinks(env, ctx) {
-  // Check KV cache first
-  const cached = await env.KV.get(MERGED_CACHE_KEY, "json");
-  if (cached) {
-    return jsonResponse(cached);
-  }
-
-  // Cache miss — full fetch + enrichment cycle
+  // Full fetch + enrichment cycle (no merged cache — fresh from sheets every request)
   const [linksCSV, editorsCSV, configCSV, orgsCSV] = await Promise.all([
     fetchText(env.LINKS_CSV_URL),
     fetchText(env.EDITORS_CSV_URL),
@@ -264,21 +256,15 @@ async function handleLinks(env, ctx) {
     config,
   };
 
-  // Cache merged dataset with 24hr TTL
-  ctx.waitUntil(
-    env.KV.put(MERGED_CACHE_KEY, JSON.stringify(dataset), {
-      expirationTtl: MERGED_CACHE_TTL,
-    })
-  );
-
   return jsonResponse(dataset);
 }
 
 // ─── GET /api/purge?key=SECRET ──────────────────────────────────────────────
 
 async function handlePurge(url, env) {
-  await env.KV.delete(MERGED_CACHE_KEY);
-  return jsonResponse({ success: true, message: "Cache purged. Next page load will fetch fresh data." });
+  // Merged cache removed — sheets are fetched fresh every request.
+  // Endpoint kept for backwards compatibility.
+  return jsonResponse({ success: true, message: "No merged cache to purge. Data is fetched fresh from sheets on every request." });
 }
 
 // ─── OG Scraper ─────────────────────────────────────────────────────────────
