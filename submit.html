@@ -15,31 +15,32 @@
   <link rel="icon" type="image/svg+xml" href="/favicon.svg">
   <link rel="stylesheet" href="styles.css">
   <style>
-    /* ─── Tabs ──────────────────────────────────────────────────────── */
+    /* ─── Pill Tabs ────────────────────────────────────────────────── */
     .tab-bar {
       display: flex;
-      gap: 0;
-      border-bottom: 2px solid var(--color-border);
+      justify-content: center;
+      gap: 0.5rem;
       margin-bottom: 2rem;
     }
     .tab-btn {
-      background: none;
-      border: none;
-      padding: 0.75rem 1.5rem;
-      font-size: 0.95rem;
+      background: var(--color-surface);
+      border: 1px solid var(--color-border);
+      padding: 0.7rem 2rem;
+      font-size: 1rem;
       font-weight: 600;
       color: var(--color-text-secondary);
       cursor: pointer;
-      border-bottom: 2px solid transparent;
-      margin-bottom: -2px;
-      transition: color 0.15s, border-color 0.15s;
+      border-radius: 50px;
+      transition: background 0.15s, color 0.15s, border-color 0.15s;
     }
     .tab-btn:hover {
       color: var(--color-text);
+      border-color: var(--color-text-muted);
     }
     .tab-btn.active {
-      color: var(--color-primary);
-      border-bottom-color: var(--color-primary);
+      background: var(--color-primary);
+      color: #fff;
+      border-color: var(--color-primary);
     }
     .tab-panel {
       display: none;
@@ -50,7 +51,10 @@
 
     /* ─── Editor styles ─────────────────────────────────────────────── */
     .editor-grid {
-      justify-items: center;
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 1.5rem;
     }
     .editor-card {
       max-width: 420px;
@@ -77,7 +81,7 @@
     <div class="nav-inner">
       <a href="/" class="nav-brand" id="nav-brand">Aligned Gov</a>
       <ul class="nav-links">
-        <li><a href="/resources.html">Resource List</a></li>
+        <li><a href="/">Resource List</a></li>
         <li><a href="/submit.html" class="active">Submit a Resource</a></li>
       </ul>
     </div>
