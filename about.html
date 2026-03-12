@@ -50,15 +50,11 @@
       margin: 0 auto;
     }
     .about-content h2 {
-      font-size: 1.25rem;
+      font-size: 1.2rem;
       font-weight: 700;
       color: var(--color-text);
-      margin-top: 2.5rem;
-      margin-bottom: 0.6rem;
-      letter-spacing: -0.01em;
-    }
-    .about-content h2:first-child {
-      margin-top: 0;
+      margin-top: 2.25rem;
+      margin-bottom: 0.5rem;
     }
     .about-content p {
       font-size: 0.95rem;
@@ -71,60 +67,89 @@
       color: var(--color-text);
       line-height: 1.65;
     }
-    .about-content .highlight {
+    .about-content .standout {
       font-weight: 600;
       color: var(--color-text);
     }
-    .about-content .cta-block {
-      margin-top: 2.5rem;
-      padding: 1.5rem;
+    .about-content a {
+      color: var(--color-primary);
+      font-weight: 500;
+    }
+
+    /* ─── Team: horizontal editor cards ────────────────────────────── */
+    .team-list {
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+      max-width: 700px;
+      margin: 0 auto;
+    }
+    .team-card {
+      display: flex;
+      align-items: flex-start;
+      gap: 1.25rem;
       background: var(--color-surface);
       border: 1px solid var(--color-border);
       border-radius: var(--radius-md);
-      border-left: 4px solid var(--color-primary);
-      text-align: center;
+      padding: 1.25rem 1.5rem;
     }
-    .about-content .cta-block p {
+    .team-card-avatar {
+      flex-shrink: 0;
+      width: 80px;
+      height: 80px;
+      border-radius: 50%;
+      object-fit: cover;
+      background: var(--color-border-light);
+    }
+    .team-card-body {
+      flex: 1;
+      min-width: 0;
+    }
+    .team-card-name {
+      font-size: 1.05rem;
+      font-weight: 650;
       color: var(--color-text);
-      font-weight: 500;
+      margin-bottom: 0.15rem;
+    }
+    .team-card-role {
+      font-size: 0.78rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      color: var(--color-primary);
       margin-bottom: 0.5rem;
     }
-    .about-content .cta-block p:last-child {
-      margin-bottom: 0;
-      font-weight: 400;
+    .team-card-bio {
       font-size: 0.88rem;
       color: var(--color-text-secondary);
+      line-height: 1.55;
+      margin-bottom: 0.4rem;
     }
-
-    /* ─── Editor cards (vertical single column) ───────────────────── */
-    .editors-intro {
-      max-width: 640px;
-      margin: 0 auto 2rem;
+    .team-card-link {
+      font-size: 0.82rem;
+      color: var(--color-primary);
+      font-weight: 500;
+    }
+    .team-card-link:hover {
+      text-decoration: underline;
+    }
+    .team-tab-link {
       text-align: center;
-      font-size: 0.95rem;
-      color: var(--color-text-secondary);
-      line-height: 1.65;
+      margin-top: 2rem;
     }
-    .editor-stack {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 1.25rem;
-      margin-bottom: 1.5rem;
-    }
-    .editor-stack .editor-card {
-      width: 100%;
-      max-width: 480px;
-    }
-    .editors-tab-link {
-      text-align: center;
-      margin-bottom: 2.5rem;
-    }
-    .editors-tab-link a {
+    .team-tab-link a {
       color: var(--color-primary);
       font-weight: 500;
       font-size: 0.92rem;
       cursor: pointer;
+    }
+
+    @media (max-width: 600px) {
+      .team-card {
+        flex-direction: column;
+        align-items: center;
+        text-align: center;
+      }
     }
 
     /* ─── Become an Editor ───────────────────────────────────────── */
@@ -224,6 +249,7 @@
     <!-- Tab Bar -->
     <div class="tab-bar">
       <button class="tab-btn active" data-tab="about">About</button>
+      <button class="tab-btn" data-tab="team">Team</button>
       <button class="tab-btn" data-tab="become-editor">Become an Editor</button>
     </div>
 
@@ -233,11 +259,11 @@
 
         <p class="lead">The AI &times; democracy space is growing fast. New organizations are forming, researchers are publishing, tools are being built, and coalitions are taking shape &mdash; often without knowing who else is working on the same problems.</p>
 
-        <p class="lead highlight">This catalog exists to change that.</p>
+        <p class="lead standout">This catalog exists to change that.</p>
 
         <p>We believe the people working at the intersection of AI and democratic governance deserve a shared resource that reflects the full breadth of the field &mdash; not curated by any single funder, institution, or point of view. A place where a grad student can find the organizations worth following, where a foundation can see who's doing serious work beyond the usual suspects, where a practitioner can discover collaborators they didn't know existed.</p>
 
-        <p class="highlight">The field moves faster when it can see itself whole.</p>
+        <p class="standout">The field moves faster when it can see itself whole.</p>
 
         <h2>How it works</h2>
         <p>Anyone can submit a resource. A rotating group of editors &mdash; practitioners, researchers, and connectors from across the ecosystem &mdash; reviews submissions and maintains the catalog over 3-month terms. No single organization owns it. No single perspective dominates it. The editors change so the catalog stays honest.</p>
@@ -249,31 +275,29 @@
         <p>Researchers and academics mapping the field. Funders looking beyond the visible layer. Practitioners trying to find collaborators and avoid duplicating work. Students and early-career professionals figuring out where they fit and who's doing work worth joining.</p>
         <p>If you're trying to understand this space, work in it, or fund it &mdash; this catalog is for you.</p>
 
-        <div class="cta-block">
-          <p>Get involved</p>
-          <p><a href="/submit.html">Submit a resource</a>. <a href="#" id="link-become-editor">Become an editor</a>. Share the catalog with someone who should know it exists.</p>
-          <p>This only works if the people who know this space help build it.</p>
-        </div>
+        <h2>Origin</h2>
+        <p>This started as a Notion page. Sean Ahrens was ramping up on AI safety and kept finding himself drawn to the intersection of AI and democracy &mdash; the organizations, the research, the people building at this frontier. He started collecting links for his own reference, and the list kept growing. Eventually it outgrew Notion, and in March 2026 he built this site to turn a personal bookmark collection into a shared resource for the field.</p>
+
+        <h2>Get involved</h2>
+        <p><a href="/submit.html">Submit a resource</a>. <a href="#" id="link-become-editor">Become an editor</a>. Share the catalog with someone who should know it exists.</p>
+        <p>This only works if the people who know this space help build it.</p>
+
+      </div>
+    </div>
+
+    <!-- ═══ Team Tab ═══ -->
+    <div class="tab-panel" id="tab-team">
+      <!-- Loading State -->
+      <div class="loading" id="editors-loading">
+        <div class="loading-spinner"></div>
+        <p>Loading team...</p>
       </div>
 
-      <!-- Editors Section -->
-      <div style="margin-top: 3rem;">
-        <div class="editors-intro">
-          <p>This map is built in the open. We believe the conversation around AI and democracy belongs to everyone working on it &mdash; not a single organization or perspective. Our editors are rotating stewards, not gatekeepers. They bring domain knowledge and care to keep the collection high-signal and representative, while ensuring every serious effort in this space has a place here.</p>
-        </div>
+      <!-- Team List -->
+      <div class="team-list" id="team-list" style="display: none;"></div>
 
-        <!-- Loading State -->
-        <div class="loading" id="editors-loading">
-          <div class="loading-spinner"></div>
-          <p>Loading editors...</p>
-        </div>
-
-        <!-- Editor Stack -->
-        <div class="editor-stack" id="editor-stack" style="display: none;"></div>
-
-        <div class="editors-tab-link" id="editors-tab-link" style="display: none;">
-          <a href="#" id="link-become-editor-2">Become an editor &rarr;</a>
-        </div>
+      <div class="team-tab-link" id="team-tab-link" style="display: none;">
+        <a href="#" id="link-become-editor-2">Interested in joining? Become an editor &rarr;</a>
       </div>
     </div>
 
@@ -365,26 +389,26 @@
         if (config.footer) document.getElementById("site-footer").textContent = config.footer;
 
         var editors = data.editors || [];
-        renderEditors(editors);
+        renderTeam(editors);
       })
       .catch(function() {
         document.getElementById("editors-loading").innerHTML =
-          "<p>Failed to load editors.</p>";
+          "<p>Failed to load team.</p>";
       });
 
-    function renderEditors(editors) {
-      var stack = document.getElementById("editor-stack");
+    function renderTeam(editors) {
+      var list = document.getElementById("team-list");
       var loading = document.getElementById("editors-loading");
-      var tabLink = document.getElementById("editors-tab-link");
+      var tabLink = document.getElementById("team-tab-link");
 
       loading.style.display = "none";
-      stack.style.display = "flex";
+      list.style.display = "flex";
       tabLink.style.display = "block";
 
-      stack.innerHTML = editors.map(editorCardHTML).join("");
+      list.innerHTML = editors.map(teamCardHTML).join("");
     }
 
-    function editorCardHTML(editor) {
+    function teamCardHTML(editor) {
       var name = escapeHTML(editor.name);
       var role = editor.role ? escapeHTML(editor.role) : "";
       var bio = editor.bio ? escapeHTML(editor.bio) : "";
@@ -402,18 +426,19 @@
         avatarSrc = gravatarUrl("placeholder@example.com");
       }
 
-      var roleLine = role ? '<p class="editor-role">' + role + "</p>" : "";
-      var bioLine = bio ? '<p class="editor-bio">' + bio + "</p>" : "";
+      var roleLine = role ? '<div class="team-card-role">' + role + "</div>" : "";
+      var bioLine = bio ? '<div class="team-card-bio">' + bio + "</div>" : "";
       var linkLine = url
-        ? '<a class="editor-link" href="' + escapeAttr(url) + '" target="_blank" rel="noopener noreferrer">' + escapeHTML(prettyUrl(url)) + "</a>"
+        ? '<a class="team-card-link" href="' + escapeAttr(url) + '" target="_blank" rel="noopener noreferrer">' + escapeHTML(prettyUrl(url)) + "</a>"
         : "";
 
       return (
-        '<div class="editor-card">' +
-        '<img class="editor-avatar" src="' + escapeAttr(avatarSrc) + '" alt="' + name + '" loading="lazy">' +
-        '<h3 class="editor-name">' + name + "</h3>" +
+        '<div class="team-card">' +
+        '<img class="team-card-avatar" src="' + escapeAttr(avatarSrc) + '" alt="' + name + '" loading="lazy">' +
+        '<div class="team-card-body">' +
+        '<div class="team-card-name">' + name + "</div>" +
         roleLine + bioLine + linkLine +
-        "</div>"
+        "</div></div>"
       );
     }
 
