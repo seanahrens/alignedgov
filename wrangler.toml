@@ -7,6 +7,7 @@ LINKS_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRrCeKNL6dLLv6m
 EDITORS_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRrCeKNL6dLLv6mHOsdEphD1_HCKLDS1fW0IHomPRSk6OwZ7OTVuoNQ_v7OhTnFJLDEN_HIyKukwce4/pub?gid=0&single=true&output=csv"
 CONFIG_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRrCeKNL6dLLv6mHOsdEphD1_HCKLDS1fW0IHomPRSk6OwZ7OTVuoNQ_v7OhTnFJLDEN_HIyKukwce4/pub?gid=1010322382&single=true&output=csv"
 ORGS_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRrCeKNL6dLLv6mHOsdEphD1_HCKLDS1fW0IHomPRSk6OwZ7OTVuoNQ_v7OhTnFJLDEN_HIyKukwce4/pub?gid=599532148&single=true&output=csv"
+DEADLINES_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRrCeKNL6dLLv6mHOsdEphD1_HCKLDS1fW0IHomPRSk6OwZ7OTVuoNQ_v7OhTnFJLDEN_HIyKukwce4/pub?gid=950777082&single=true&output=csv"
 
 [[kv_namespaces]]
 binding = "KV"

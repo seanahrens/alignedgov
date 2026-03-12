@@ -75,11 +75,12 @@ async function handleLinks(env, ctx) {
   }
 
   // Cache miss — full fetch + enrichment cycle
-  const [linksCSV, editorsCSV, configCSV, orgsCSV] = await Promise.all([
+  const [linksCSV, editorsCSV, configCSV, orgsCSV, deadlinesCSV] = await Promise.all([
     fetchText(env.LINKS_CSV_URL),
     fetchText(env.EDITORS_CSV_URL),
     fetchText(env.CONFIG_CSV_URL).catch(() => ""),
     fetchText(env.ORGS_CSV_URL).catch(() => ""),
+    fetchText(env.DEADLINES_CSV_URL).catch(() => ""),
   ]);
 
   const links = parseCSV(linksCSV);
@@ -266,10 +267,60 @@ async function handleLinks(env, ctx) {
     return a.row_id - b.row_id;
   });
 
+  // Process deadlines
+  const deadlineRows = parseCSV(deadlinesCSV);
+  const processedDeadlines = [];
+  const deadlineScrapePromises = [];
+
+  for (let i = 0; i < deadlineRows.length; i++) {
+    const row = deadlineRows[i];
+    const url = (row.url || "").trim();
+    const deadlineStr = (row.deadline || "").trim();
+    if (!url || !deadlineStr) continue;
+
+    const kvKey = await hashUrl(url);
+    const ogData = await env.KV.get(kvKey, "json");
+
+    let title = null;
+    let description = null;
+    let og_image = null;
+    let site_name = null;
+
+    if (ogData) {
+      title = ogData.title || null;
+      description = ogData.description || null;
+      og_image = ogData.og_image || null;
+      site_name = ogData.site_name || null;
+
+      const needsScrape =
+        !ogData.date_scraped || isStale(ogData.date_scraped, OG_STALE_DAYS) ||
+        (!ogData.site_name && !ogData._v2);
+      if (needsScrape) {
+        deadlineScrapePromises.push(scrapeAndStore(env, kvKey, url, i + 1));
+      }
+    } else {
+      deadlineScrapePromises.push(scrapeAndStore(env, kvKey, url, i + 1));
+    }
+
+    processedDeadlines.push({
+      url,
+      deadline: deadlineStr,
+      title,
+      description,
+      og_image,
+      site_name,
+    });
+  }
+
+  if (deadlineScrapePromises.length > 0) {
+    ctx.waitUntil(Promise.allSettled(deadlineScrapePromises));
+  }
+
   const dataset = {
     links: processedLinks,
     editors: processedEditors,
     orgs: processedOrgs,
+    deadlines: processedDeadlines,
     config,
   };
 
