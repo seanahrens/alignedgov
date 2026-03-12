@@ -13,7 +13,7 @@
       gap: 0.75rem;
     }
 
-    @media (max-width: 700px) {
+    @media (max-width: 900px) {
       .link-grid {
         grid-template-columns: 1fr;
       }
@@ -104,16 +104,16 @@
       line-height: 1.35;
       color: var(--color-text);
       margin-bottom: 0.2rem;
-      display: -webkit-box;
-      -webkit-line-clamp: 2;
-      -webkit-box-orient: vertical;
+      white-space: nowrap;
       overflow: hidden;
+      text-overflow: ellipsis;
     }
 
     .link-desc {
       font-size: 0.82rem;
       color: var(--color-text-secondary);
       line-height: 1.4;
+      height: calc(2 * 1.4 * 0.82rem);
       display: -webkit-box;
       -webkit-line-clamp: 2;
       -webkit-box-orient: vertical;
@@ -318,14 +318,14 @@
       h3.textContent = title;
       text.appendChild(h3);
 
-      // Description — skip if matches title or source
+      // Description — always render to reserve height; skip text if redundant
       var desc = link.description;
+      var descEl = document.createElement("div");
+      descEl.className = "link-desc";
       if (desc && !isSameText(desc, title) && !isSameText(desc, source)) {
-        var descEl = document.createElement("div");
-        descEl.className = "link-desc";
         descEl.textContent = desc;
-        text.appendChild(descEl);
       }
+      text.appendChild(descEl);
 
       // Editor notes — if present
       if (link.notes) {
