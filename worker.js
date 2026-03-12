@@ -204,6 +204,7 @@ async function handleLinks(env, ctx) {
     const row = orgRows[i];
     const url = (row.url || "").trim();
     if (!url) continue;
+    if ((row.deleted_at || "").trim()) continue;
 
     const orgRowId = i + 1;
     const category = (row.category || "").trim() || "Uncategorized";
