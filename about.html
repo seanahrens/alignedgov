@@ -3,11 +3,13 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>About — AI x Democracy Catalog</title>
+  <title>About — AI×Democracy.FYI</title>
   <meta name="description" content="About the AI x Democracy ecosystem catalog — who it's for, how it works, and how to get involved.">
   <meta property="og:type" content="website">
-  <meta property="og:title" content="About — AI x Democracy Catalog">
+  <meta property="og:title" content="About — AI×Democracy.FYI">
   <meta property="og:description" content="About the AI x Democracy ecosystem catalog">
+  <meta property="og:url" content="https://aixdemocracy.fyi/about">
+  <meta property="og:site_name" content="AI×Democracy.FYI">
   <meta property="og:image" content="https://alignedgov.pages.dev/og-image.png">
   <meta property="og:site_name" content="AlignedGov">
   <meta name="twitter:card" content="summary_large_image">
@@ -355,7 +357,10 @@
       .then(function(r) { return r.json(); })
       .then(function(data) {
         var config = data.config || {};
-        if (config.title) document.getElementById("nav-brand").textContent = config.title;
+        if (config.title) {
+          document.getElementById("nav-brand").textContent = config.title;
+          document.title = "About — " + config.title;
+        }
         if (config.footer) document.getElementById("site-footer").textContent = config.footer;
 
         var editors = data.editors || [];

@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Admin — AI x Democracy Catalog</title>
+  <title>Admin — AI×Democracy.FYI</title>
   <meta name="robots" content="noindex, nofollow">
   <link rel="icon" type="image/svg+xml" href="/favicon.svg">
   <link rel="stylesheet" href="styles.css">
@@ -126,7 +126,10 @@
       .then(function(r) { return r.json(); })
       .then(function(data) {
         var config = data.config || {};
-        if (config.title) document.getElementById("nav-brand").textContent = config.title;
+        if (config.title) {
+          document.getElementById("nav-brand").textContent = config.title;
+          document.title = "Admin — " + config.title;
+        }
         if (config.footer) document.getElementById("site-footer").textContent = config.footer;
       })
       .catch(function() {});

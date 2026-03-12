@@ -3,20 +3,20 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>AlignedGov — Aligned AI Requires Aligned Governance</title>
+  <title>AI×Democracy.FYI — A Resource Map for Who's Working in This Space</title>
   <meta name="description" content="An ecosystem map of orgs, people, and papers focused on the intersection of AI &amp; Democracy">
 
   <!-- Open Graph -->
   <meta property="og:type" content="website">
-  <meta property="og:title" content="AlignedGov">
+  <meta property="og:title" content="AI×Democracy.FYI">
   <meta property="og:description" content="An ecosystem map of orgs, people, and papers focused on the intersection of AI &amp; Democracy">
-  <meta property="og:url" content="https://alignedgov.org">
+  <meta property="og:url" content="https://aixdemocracy.fyi">
   <meta property="og:image" content="https://alignedgov.pages.dev/og-image.png">
-  <meta property="og:site_name" content="AlignedGov">
+  <meta property="og:site_name" content="AI×Democracy.FYI">
 
   <!-- Twitter Card -->
   <meta name="twitter:card" content="summary_large_image">
-  <meta name="twitter:title" content="AlignedGov">
+  <meta name="twitter:title" content="AI×Democracy.FYI">
   <meta name="twitter:description" content="An ecosystem map of orgs, people, and papers focused on the intersection of AI &amp; Democracy">
   <meta name="twitter:image" content="https://alignedgov.pages.dev/og-image.png">
 
@@ -447,7 +447,10 @@
 
         // Apply dynamic config
         var config = data.config || {};
-        if (config.title) document.getElementById("nav-brand").textContent = config.title;
+        if (config.title) {
+          document.getElementById("nav-brand").textContent = config.title;
+          document.title = config.title + (config.subheading ? " — " + config.subheading : "");
+        }
         if (config.heading) document.getElementById("site-heading").textContent = config.heading;
         if (config.subheading) document.getElementById("site-subheading").textContent = config.subheading;
         if (config.description) document.getElementById("site-description").textContent = config.description;

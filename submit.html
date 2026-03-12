@@ -3,14 +3,14 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Submit a Resource - Aligned Gov</title>
-  <meta name="description" content="Submit a resource to the Aligned Gov ecosystem map">
+  <title>Submit a Resource — AI×Democracy.FYI</title>
+  <meta name="description" content="Submit a resource to the AI×Democracy.FYI ecosystem map">
   <meta property="og:type" content="website">
-  <meta property="og:title" content="Submit a Resource — AlignedGov">
-  <meta property="og:description" content="Submit a resource to the AlignedGov ecosystem map">
-  <meta property="og:url" content="https://alignedgov.org/submit">
+  <meta property="og:title" content="Submit a Resource — AI×Democracy.FYI">
+  <meta property="og:description" content="Submit a resource to the AI×Democracy.FYI ecosystem map">
+  <meta property="og:url" content="https://aixdemocracy.fyi/submit">
   <meta property="og:image" content="https://alignedgov.pages.dev/og-image.png">
-  <meta property="og:site_name" content="AlignedGov">
+  <meta property="og:site_name" content="AI×Democracy.FYI">
   <meta name="twitter:card" content="summary_large_image">
   <link rel="icon" type="image/svg+xml" href="/favicon.svg">
   <link rel="stylesheet" href="styles.css">
@@ -68,7 +68,10 @@
       .then(function(r) { return r.json(); })
       .then(function(data) {
         var config = data.config || {};
-        if (config.title) document.getElementById("nav-brand").textContent = config.title;
+        if (config.title) {
+          document.getElementById("nav-brand").textContent = config.title;
+          document.title = "Submit a Resource — " + config.title;
+        }
         if (config.footer) document.getElementById("site-footer").textContent = config.footer;
       })
       .catch(function() {});
