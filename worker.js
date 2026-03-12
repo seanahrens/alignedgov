@@ -75,10 +75,11 @@ async function handleLinks(env, ctx) {
   }
 
   // Cache miss — full fetch + enrichment cycle
-  const [linksCSV, editorsCSV, configCSV] = await Promise.all([
+  const [linksCSV, editorsCSV, configCSV, orgsCSV] = await Promise.all([
     fetchText(env.LINKS_CSV_URL),
     fetchText(env.EDITORS_CSV_URL),
     fetchText(env.CONFIG_CSV_URL).catch(() => ""),
+    fetchText(env.ORGS_CSV_URL).catch(() => ""),
   ]);
 
   const links = parseCSV(linksCSV);
@@ -102,6 +103,7 @@ async function handleLinks(env, ctx) {
     const category = (row.category || "").trim() || "Uncategorized";
     const power = parseInt(row.power, 10) || 0;
     const notes = (row.notes || "").trim() || null;
+    const org = (row.org || "").trim() || null;
 
     // Look up OG enrichment from KV
     const kvKey = await hashUrl(url);
@@ -144,6 +146,7 @@ async function handleLinks(env, ctx) {
       category,
       power,
       notes,
+      org,
       title,
       description,
       og_image,
@@ -188,9 +191,76 @@ async function handleLinks(env, ctx) {
     if (key) config[key] = value;
   }
 
+  // Process orgs
+  const orgRows = parseCSV(orgsCSV);
+  const processedOrgs = [];
+  const orgScrapePromises = [];
+
+  for (let i = 0; i < orgRows.length; i++) {
+    const row = orgRows[i];
+    const url = (row.url || "").trim();
+    if (!url) continue;
+
+    const orgRowId = i + 1;
+    const category = (row.category || "").trim() || "Uncategorized";
+    const power = parseInt(row.power, 10) || 0;
+    const people = (row.people || "").trim()
+      ? (row.people || "").trim().split(/\n/).map(p => p.trim()).filter(Boolean)
+      : [];
+
+    // Scrape org URL for OG data (same KV pattern as links)
+    const kvKey = await hashUrl(url);
+    const ogData = await env.KV.get(kvKey, "json");
+
+    let title = null;
+    let description = null;
+    let og_image = null;
+    let site_name = null;
+
+    if (ogData) {
+      title = ogData.title || null;
+      description = ogData.description || null;
+      og_image = ogData.og_image || null;
+      site_name = ogData.site_name || null;
+
+      const needsScrape =
+        !ogData.date_scraped || isStale(ogData.date_scraped, OG_STALE_DAYS) ||
+        (!ogData.site_name && !ogData._v2);
+      if (needsScrape) {
+        orgScrapePromises.push(scrapeAndStore(env, kvKey, url, orgRowId));
+      }
+    } else {
+      orgScrapePromises.push(scrapeAndStore(env, kvKey, url, orgRowId));
+    }
+
+    processedOrgs.push({
+      url,
+      category,
+      power,
+      people,
+      title,
+      description,
+      og_image,
+      site_name,
+      row_id: orgRowId,
+    });
+  }
+
+  // Fire off org scrapes
+  if (orgScrapePromises.length > 0) {
+    ctx.waitUntil(Promise.allSettled(orgScrapePromises));
+  }
+
+  // Sort orgs: power descending, then row_id ascending
+  processedOrgs.sort((a, b) => {
+    if (b.power !== a.power) return b.power - a.power;
+    return a.row_id - b.row_id;
+  });
+
   const dataset = {
     links: processedLinks,
     editors: processedEditors,
+    orgs: processedOrgs,
     config,
   };
 

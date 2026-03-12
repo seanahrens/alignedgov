@@ -6,6 +6,7 @@ compatibility_date = "2024-01-01"
 LINKS_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRrCeKNL6dLLv6mHOsdEphD1_HCKLDS1fW0IHomPRSk6OwZ7OTVuoNQ_v7OhTnFJLDEN_HIyKukwce4/pub?gid=1419865336&single=true&output=csv"
 EDITORS_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRrCeKNL6dLLv6mHOsdEphD1_HCKLDS1fW0IHomPRSk6OwZ7OTVuoNQ_v7OhTnFJLDEN_HIyKukwce4/pub?gid=0&single=true&output=csv"
 CONFIG_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRrCeKNL6dLLv6mHOsdEphD1_HCKLDS1fW0IHomPRSk6OwZ7OTVuoNQ_v7OhTnFJLDEN_HIyKukwce4/pub?gid=1010322382&single=true&output=csv"
+ORGS_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRrCeKNL6dLLv6mHOsdEphD1_HCKLDS1fW0IHomPRSk6OwZ7OTVuoNQ_v7OhTnFJLDEN_HIyKukwce4/pub?gid=599532148&single=true&output=csv"
 
 [[kv_namespaces]]
 binding = "KV"
