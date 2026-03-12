@@ -278,17 +278,21 @@ async function handleLinks(env, ctx) {
     const deadlineStr = (row.deadline || "").trim();
     if (!url || !deadlineStr) continue;
 
+    // Sheet-level overrides
+    const titleOverride = (row.title || "").trim() || null;
+    const descOverride = (row.description || "").trim() || null;
+
     const kvKey = await hashUrl(url);
     const ogData = await env.KV.get(kvKey, "json");
 
-    let title = null;
-    let description = null;
+    let title = titleOverride;
+    let description = descOverride;
     let og_image = null;
     let site_name = null;
 
     if (ogData) {
-      title = ogData.title || null;
-      description = ogData.description || null;
+      if (!title) title = ogData.title || null;
+      if (!description) description = ogData.description || null;
       og_image = ogData.og_image || null;
       site_name = ogData.site_name || null;
 

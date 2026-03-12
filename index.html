@@ -586,8 +586,19 @@
         orgLinkMap[key] = [];
       });
 
-      // Assign links to orgs
+      // Separate editor links from the rest
+      var editorLinks = [];
+      var nonEditorLinks = [];
       links.forEach(function(link) {
+        if ((link.category || "").toLowerCase() === "editor") {
+          editorLinks.push(link);
+        } else {
+          nonEditorLinks.push(link);
+        }
+      });
+
+      // Assign non-editor links to orgs
+      nonEditorLinks.forEach(function(link) {
         if (link.org) {
           var key = normalizeUrl(link.org);
           if (orgLinkMap[key]) {
@@ -622,6 +633,23 @@
           category: null,
         };
         container.appendChild(createOrgCard(independentOrg, orphanLinks));
+      }
+
+      // Render editor writings section
+      if (editorLinks.length > 0) {
+        var edLabel = document.createElement("div");
+        edLabel.className = "org-section-label";
+        edLabel.textContent = "Editor Writings";
+        container.appendChild(edLabel);
+
+        var editorOrg = {
+          url: null,
+          title: "Editor Writings",
+          description: null,
+          people: [],
+          category: null,
+        };
+        container.appendChild(createOrgCard(editorOrg, editorLinks));
       }
     }
 
