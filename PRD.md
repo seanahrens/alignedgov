@@ -1,6 +1,6 @@
-# AlignedGov — Product Requirements Document
+# AI×Democracy.FYI — Product Requirements Document
 
-**Version:** 2.0
+**Version:** 3.0
 **Date:** March 12, 2026
 **Author:** Sean + Claude
 **Status:** Active
@@ -9,13 +9,13 @@
 
 ## 1. Overview
 
-A publicly accessible ecosystem map where a community of editors curate URLs about AI & Democracy. The site displays enriched link previews (title, description, og:image) fetched automatically, with no manual deployment required to update content.
+A publicly accessible ecosystem map where a community of rotating editors curate URLs about AI & Democracy. The site displays enriched link previews (title, description, og:image) fetched automatically, with no manual deployment required to update content.
 
 ## 2. Goals
 
 - Zero-friction content updates — editors add links to Google Sheets; the site reflects changes within 24 hours with no code deploys
 - Rich link previews — each link automatically displays title, description, and og:image scraped once and cached, re-scraped every 7 days
-- Custom domain — hosted on user's existing Cloudflare-managed domain (alignedgov.org)
+- Custom domain — hosted at **aixdemocracy.fyi** on Cloudflare
 - Claude-programmable frontend — design is expressed in code (HTML/JS) so Claude can iterate on it freely
 - Near-zero cost — target $0–2/mo beyond existing domain registration
 
@@ -41,35 +41,34 @@ A publicly accessible ecosystem map where a community of editors curate URLs abo
 
 ### 4.2 Caching Strategy
 
-Single KV cache layer. CDN caching evaluated and rejected for v1.0 — at low traffic volumes, the Worker reading one KV key (~10–30ms) is fast and free within Cloudflare's generous free tier.
+Single KV cache layer.
 
 | Layer | Mechanism | TTL | Effect |
 |---|---|---|---|
 | KV (merged cache) | Cloudflare KV stores merged enriched link dataset | 24 hours | On KV hit, Worker returns data without re-fetching Sheet or re-scraping. On KV miss, full fetch + enrichment cycle runs. |
 | KV (individual OG) | Per-URL OG data keyed by sha256(url).slice(0,16) | No TTL (re-scraped when stale) | Individual entries persist until re-scraped at 7-day intervals |
 
-**Manual cache invalidation:** `GET /bust` deletes the merged KV entry, forcing a full re-fetch on the next visit. No secret key required — simple memorable URL.
+**Manual cache invalidation:** `GET /bust` deletes the merged KV entry, forcing a full re-fetch on the next visit. Also accessible from the admin page UI.
 
 ### 4.3 Data Flow
 
-1. User visits alignedgov.org — Cloudflare Pages serves static HTML/JS instantly
+1. User visits aixdemocracy.fyi — Cloudflare Pages serves static HTML/JS instantly
 2. Frontend JS calls GET /api/links on the Cloudflare Worker
 3. Worker checks KV for merged enriched dataset (24hr TTL)
 4. On KV hit: Worker returns dataset immediately (~10–30ms). Done.
-5. On KV miss: Worker fetches Google Sheets published CSVs (Approved Links, Editors, Orgs, Config tabs)
-6. Worker reads all rows from Approved Links — every row shown on site, no filtering needed
-7. For each approved row, Worker checks KV for individual OG enrichment entry keyed by hash(url)
-8. Missing or stale (> 7 days) OG entries are scraped asynchronously via waitUntil() — response is not blocked
-9. Worker merges Sheet rows + OG enrichment, sorts by power desc / row_id asc, writes merged dataset to KV (24hr TTL)
-10. Worker returns { links: [...], editors: [...], orgs: [...], config: {...} } to frontend; frontend renders enriched link cards
+5. On KV miss: Worker fetches Google Sheets published CSVs (Approved Links, Editors, Orgs, Config, Deadlines tabs)
+6. For each approved row, Worker checks KV for individual OG enrichment entry keyed by hash(url)
+7. Missing or stale (> 7 days) OG entries are scraped asynchronously via waitUntil() — response is not blocked
+8. Worker merges Sheet rows + OG enrichment, sorts by power desc / row_id asc, writes merged dataset to KV (24hr TTL)
+9. Worker returns `{ links, editors, orgs, deadlines, config }` to frontend; frontend renders enriched link cards
 
 ### 4.4 Async Enrichment Behavior
 
-To avoid blocking the first visitor after a KV cache miss when many new links exist, the Worker must:
+To avoid blocking the first visitor after a KV cache miss when many new links exist, the Worker:
 
-- Return immediately with all currently available data (existing OG enrichment where present, nulls where not yet scraped)
-- Trigger scraping of unenriched/stale URLs asynchronously using waitUntil() — these run after the response is sent
-- Newly approved links will be fully enriched by the next request after scraping completes, typically within seconds of the first visit
+- Returns immediately with all currently available data (existing OG enrichment where present, nulls where not yet scraped)
+- Triggers scraping of unenriched/stale URLs asynchronously using waitUntil()
+- Newly approved links will be fully enriched by the next request after scraping completes
 
 ## 5. Database Schema (Google Sheets)
 
@@ -80,28 +79,29 @@ The Google Sheet is the single source of truth for all human-curated data. The W
 | Tab Name | Published CSV gid | Purpose |
 |---|---|---|
 | Approved Links | 1419865336 | Links displayed on the site |
-| Editors | 0 | Editor profiles for /editors page |
+| Editors | 0 | Editor profiles for Team tab on About page |
 | Orgs | 599532148 | Organizations (relational parent for links) |
 | Config | 1010322382 | Key/value site configuration |
+| Deadlines | 950777082 | Upcoming program deadlines |
 | Submitted Links | N/A (not read by Worker) | Google Form submission queue |
 | Submitted Editors | N/A (not read by Worker) | Editor application queue |
 
 ### 5.1 Approved Links Tab
 
-Every row here appears on the site — no approval logic in code. Editors manually promote links here from Submitted Links (or add them directly).
+Every row here appears on the site — no approval logic in code.
 
 | Column | Type | Required | Description |
 |---|---|---|---|
-| url | string | Yes | Full URL of the link. Row skipped entirely if blank. |
+| url | string | Yes | Full URL of the link. Row skipped if blank. |
 | category | string | Yes | Freeform category label. Defaults to 'Uncategorized' if blank. |
-| power | integer 1–10 | No | Editor-assigned quality/relevance score. Defaults to 0. Used for sort order only — not shown publicly. |
+| power | integer 1–10 | No | Editor-assigned quality/relevance score. Defaults to 0. Sort order only — not shown publicly. |
 | notes | string | No | Optional editor commentary shown on the card. |
 | org | string | No | URL matching an Orgs row — creates relational link to parent org. |
+| title | string | No | Override for scraped OG title. |
+| description | string | No | Override for scraped OG description. |
 | deleted_at | string | No | Soft-delete timestamp. Row hidden from output if present. |
 
-**Note:** `submitter` and `approved_by` columns exist for human editorial workflow but are NOT included in the API output.
-
-**OG enrichment fields** (title, description, og_image, site_name, date_scraped) live exclusively in Cloudflare KV, keyed by sha256(url).slice(0,16).
+**OG enrichment fields** (title, description, og_image, site_name, date_scraped) live exclusively in Cloudflare KV, keyed by sha256(url).slice(0,16). Title/description overrides in the sheet take precedence over scraped values.
 
 ### 5.2 Editors Tab
 
@@ -114,33 +114,40 @@ Every row here appears on the site — no approval logic in code. Editors manual
 | url | string | No | Personal website or profile link |
 | photo_url | string | No | Optional override for Gravatar. If blank, Gravatar is used. |
 
-**Photo resolution:** Gravatar URL is requested at ?s=400 for retina display. Fallback: identicon.
-
 ### 5.3 Orgs Tab
 
 | Column | Type | Required | Description |
 |---|---|---|---|
 | url | string | Yes | Organization's website URL. Used as join key from Approved Links. |
 | category | string | Yes | Org category (Non-profits, University Labs, etc.) |
+| title | string | No | Override for scraped OG title. |
+| description | string | No | Override for scraped OG description. |
 | people | string | No | Key people, newline-separated. |
 | power | integer | No | Sort weight for org display order. |
-
-Org title, description, favicon, and og_image are scraped from the org's URL and cached in KV (same pattern as link scraping).
+| deleted_at | string | No | Soft-delete timestamp. |
 
 ### 5.4 Config Tab
 
 Key/value pairs for site configuration.
 
-| Column | Description |
+| Key | Description |
 |---|---|
-| key | Config key name (e.g. heading, subheading, description) |
-| value | Config value |
+| title | Site brand name shown in nav and page titles (e.g. "AI×Democracy.FYI") |
+| heading | Main heading on the home page |
+| subheading | Subheading on the home page |
+| description | Meta description / hero text |
+| footer | Footer text shown on all pages |
 
-Current keys: `heading`, `subheading`, `description`
+### 5.5 Deadlines Tab
 
-### 5.5 Submitted Links Tab
+| Column | Type | Required | Description |
+|---|---|---|---|
+| url | string | Yes | URL of the program/opportunity |
+| deadline | string (ISO 8601) | Yes | Deadline date, e.g. "2026-03-16" |
+| title | string | No | Override for scraped OG title |
+| description | string | No | Override for scraped OG description |
 
-Receives public submissions from the Google Form. Never read by the Worker — this is a human review queue only.
+Deadlines are enriched with OG data just like links. Frontend filters to show only deadlines within 1 week past, sorted ascending by date. Passed deadlines show "(passed)" label.
 
 ## 6. Cloudflare KV Schema
 
@@ -165,23 +172,23 @@ Merged dataset cache key: `merged_dataset_v1` (24hr TTL)
 
 ### 7.1 Endpoints
 
-- `GET /api/links` — Returns { links, editors, orgs, config } as JSON. Links are OG-enriched, sorted by power desc / row_id asc.
+- `GET /api/links` — Returns `{ links, editors, orgs, deadlines, config }` as JSON.
 - `GET /bust` — Deletes the merged KV dataset entry, forcing full re-fetch on next visit. No auth required.
 
-**CORS:** Allows *.pages.dev, localhost, alignedgov.org, www.alignedgov.org
+**CORS:** Allows *.pages.dev, localhost, alignedgov.org, www.alignedgov.org, aixdemocracy.fyi, www.aixdemocracy.fyi
 
 ### 7.2 Worker Responsibilities
 
-- Fetch published CSV URLs (Approved Links, Editors, Orgs, Config) from Google Sheets — no auth required
-- Parse CSVs defensively: skip rows with blank url; treat blank power as 0; treat blank category as 'Uncategorized'
+- Fetch published CSV URLs (Approved Links, Editors, Orgs, Config, Deadlines) from Google Sheets
+- Parse CSVs with RFC 4180 parser handling quoted fields with embedded newlines
+- Skip rows with blank url; treat blank power as 0; treat blank category as 'Uncategorized'
 - Skip rows with `deleted_at` populated (soft-delete)
 - Assign row_id (1-based integer, position in tab excluding header)
+- Apply title/description overrides from sheet columns (take precedence over scraped OG values)
 - For each URL, look up individual OG enrichment KV entry by sha256(url).slice(0,16)
-- Identify unenriched (no KV entry) or stale (date_scraped > 7 days ago) rows
 - Scrape unenriched/stale rows asynchronously via waitUntil()
 - Merge Sheet rows + OG enrichment, sort by power desc / row_id asc
 - Write merged dataset to KV with 24hr TTL
-- Return { links, editors, orgs, config }
 
 ### 7.3 Scraper Behavior
 
@@ -197,31 +204,31 @@ Merged dataset cache key: `merged_dataset_v1` (24hr TTL)
 ### 7.4 wrangler.toml Environment Variables
 
 ```toml
-LINKS_CSV_URL   = "...pub?gid=1419865336&single=true&output=csv"
-EDITORS_CSV_URL = "...pub?gid=0&single=true&output=csv"
-ORGS_CSV_URL    = "...pub?gid=599532148&single=true&output=csv"
-CONFIG_CSV_URL  = "...pub?gid=1010322382&single=true&output=csv"
+LINKS_CSV_URL     = "...pub?gid=1419865336&single=true&output=csv"
+EDITORS_CSV_URL   = "...pub?gid=0&single=true&output=csv"
+ORGS_CSV_URL      = "...pub?gid=599532148&single=true&output=csv"
+CONFIG_CSV_URL    = "...pub?gid=1010322382&single=true&output=csv"
+DEADLINES_CSV_URL = "...pub?gid=950777082&single=true&output=csv"
 ```
 
 ## 8. Frontend
 
 ### 8.1 Site Identity
 
-- **Domain:** alignedgov.org
-- **Heading:** AlignedGov (pulled from Config sheet)
-- **Subheading:** Aligned AI Requires Aligned Governance
-- **Description:** ecosystem map of orgs, people, and papers focused on the intersection of AI & Democracy
+- **Domain:** aixdemocracy.fyi
+- **Brand name, heading, subheading, description, footer:** All pulled dynamically from Config sheet
+- **Page titles:** Set dynamically via JS from config (e.g. "About — AI×Democracy.FYI")
 
-### 8.2 Hosting & File Structure
+### 8.2 File Structure
 
 Static files deployed to Cloudflare Pages from GitHub repo. Auto-deploys on git push (~30 seconds).
 
 ```
-index.html      — Home page (link collection, compact favicon-based cards)
-orgs-test.html  — Org-centric view (test page)
-editors.html    — Editors page
+index.html      — Home page (org-centric resource list + deadlines + editor writings)
+about.html      — About page with pill tabs (About, Team, Become an Editor)
 submit.html     — Submit a Resource page
-bust.html       — Cache bust trigger page
+admin.html      — Unlisted admin page (cache bust, CRM, form links)
+resources.html  — Redirect to /
 styles.css      — Shared design system
 favicon.svg     — SVG network-node favicon
 worker.js       — Cloudflare Worker (deployed separately via Wrangler)
@@ -230,68 +237,76 @@ wrangler.toml   — Worker configuration
 
 ### 8.3 Pages
 
-**/ — Home (Link Collection)**
-- Site heading, subheading, and description at top (populated from Config sheet via API)
-- Category filter pills — one pill per unique category, plus 'All' (default)
-- Compact favicon-based card layout (two-column grid, single column on medium screens)
-- Each card: favicon (Google Favicon API), meta line (source + category badge), title (single line, truncated with ellipsis), description (2-line fixed height), editor notes (if present)
-- Cards sorted by power descending, row_id ascending for tiebreak
+**/ — Home (Resource List)**
+- Deadlines section at top — shows upcoming program deadlines within 1 week past, sorted ascending. Passed deadlines show "(passed)".
+- Org-centric view: orgs grouped by category, each org card shows org identity (favicon, name, description, category, people) + nested link list
+- "Independent Resources" section for links not matched to any org
+- "Editor Writings" section for links with category "editor"
+- Submit a Resource CTA button at bottom
+- Dynamic nav brand, footer, and document.title from config
+
+**Cards & link display:**
+- Each link: favicon (Google Favicon API), meta line (source + category badge), title, description, editor notes
+- Links sorted by power descending, row_id ascending for tiebreak
 - DOM-based card creation (not innerHTML) to prevent XSS/escaping issues
 
-**/editors — Editors Page**
-- Editor cards displayed in a centered grid (max-width 420px per card for balanced single-editor layout)
-- Each card: Gravatar (160x160px, MD5 hashed client-side) or photo_url, name, role, bio, link
-- Ethos statement below editors: co-created, open, rotating stewards
-- "Apply to be a rotating editor" link → Google Form
+**/about — About Page**
+- Pill tab navigation: About, Team, Become an Editor
+- **About tab:** Mission, how it works, what belongs here, who it's for, origin story, get involved section with anti-spam email link (hello@aixdemocracy.fyi assembled via JS)
+- **Team tab:** Horizontal full-width editor cards (avatar, name, role, bio, link). "Become an editor →" link to switch tabs.
+- **Become an Editor tab:** Intro copy, callout, two always-visible detail sections (responsibilities + what good editorship looks like), Apply button → Google Form
 
 **/submit — Submit a Resource**
 - Explains purpose and submission criteria
 - CTA button links to Google Form (opens in new tab)
 
-**/orgs-test — Org-Centric View (Test)**
-- Org cards displayed in a single-column list
-- Each org card: left side (org identity: favicon, linked name, description, category badge, key people) + right side (vertically-stacked link list with thin dividers)
-- Org name links to the org's URL
-- Links displayed as simple list items (favicon + meta + title + description), not cards — separated by thin horizontal lines
-- Hover: light background fill on both org cards and individual link items
-- Orgs sorted by power descending, row_id ascending
-- Links matched to orgs via the `org` column (URL matching with normalization)
-- Orphan links (no org match) collected into "Independent Resources" section at bottom
-- Orgs without links display cleanly with just the org identity
-- Responsive: stacks vertically on screens < 768px
+**/admin — Admin (unlisted)**
+- `noindex` meta tag
+- Bust Cache button (calls Worker `/bust` endpoint)
+- CRM link (Google Sheet)
+- Submit Resource Form (View + Edit links)
+- Apply to be an Editor Form (View + Edit links)
 
-**/bust — Cache Bust**
-- Calls Worker `/bust` endpoint and shows confirmation
+### 8.4 Navigation
 
-### 8.4 OG Metadata
+Shared top nav across all pages:
+- Nav brand (site title from config, links to /)
+- Resource List (/)
+- About (/about.html)
+- Submit a Resource (/submit.html)
+- Active page highlighted
 
-All pages include hardcoded Open Graph and Twitter Card meta tags:
+### 8.5 OG Metadata
+
+All pages include Open Graph and Twitter Card meta tags:
 - og:title, og:description, og:image, og:url, og:site_name
 - twitter:card (summary_large_image)
-- og:image points to `https://alignedgov.pages.dev/og-image.png` (needs to be created)
+- og:image points to `https://alignedgov.pages.dev/og-image.png`
 
-### 8.5 Navigation
+### 8.6 Dynamic Content from Config
 
-- Shared top nav across all pages via styles.css
-- Nav links: Aligned Gov (home), Links, Editors, Submit a Resource
-- Active page highlighted in nav
+All pages fetch `/api/links` on load to populate:
+- Nav brand text (from config.title)
+- Page title (from config.title)
+- Footer text (from config.footer)
 
-### 8.6 Design Principles
+### 8.7 Design Principles
 
 - Clean, editorial aesthetic appropriate for a governance/policy ecosystem map
 - Shared styles.css — global design changes in one file
 - Content updates require zero code changes
-- Accessible: semantic HTML, sufficient color contrast, keyboard-navigable pills and cards
+- Accessible: semantic HTML, sufficient color contrast
 - Power score is internal only — never displayed to public visitors
 
 ## 9. Access & Permissions
 
 | Role | Access Method | Capabilities |
 |---|---|---|
-| Public visitor | Website (no auth) | Browse links, filter by category, visit /editors, submit via Google Form |
+| Public visitor | Website (no auth) | Browse links, view about/team, submit via Google Form |
 | Public submitter | Google Form | Submit URL + metadata; row lands in Submitted Links |
 | Editor (up to 100) | Google Sheets (shared) | Add/edit/delete rows, approve submissions |
 | Editor applicant | Google Form | Apply to become a rotating editor |
+| Admin | /admin page (unlisted, no auth) | Bust cache, access CRM and forms |
 | Developer | GitHub + Cloudflare Pages | Edit frontend design and Worker logic |
 
 ## 10. Cost Summary
@@ -304,41 +319,49 @@ All pages include hardcoded Open Graph and Twitter Card meta tags:
 | Cloudflare Worker | $0 | 100k req/day free tier |
 | Cloudflare KV | $0 | 100k reads, 1k writes/day free |
 | Gravatar | $0 | Photo hosting via email hash |
-| Domain (alignedgov.org) | ~$0.83/mo | Amortized annual registration |
+| Domain (aixdemocracy.fyi) | ~$0.83/mo | Amortized annual registration |
 | **Total** | **~$1/mo** | Domain cost only |
 
 ## 11. Credentials & Values Reference
 
-| Variable | Where to get it | Value |
-|---|---|---|
-| LINKS_CSV_URL | Sheets → Publish to web → Approved Links tab → CSV | `...pub?gid=1419865336&single=true&output=csv` |
-| EDITORS_CSV_URL | Same flow, Editors tab | `...pub?gid=0&single=true&output=csv` |
-| ORGS_CSV_URL | Same flow, Orgs tab | `...pub?gid=599532148&single=true&output=csv` |
-| CONFIG_CSV_URL | Same flow, Config tab | `...pub?gid=1010322382&single=true&output=csv` |
-| GOOGLE_FORM_URL (submissions) | Google Forms → Share → Copy link | `https://forms.gle/s8WjAG8YENCvZVwh7` |
-| GOOGLE_FORM_URL (editor apps) | Google Forms → Share → Copy link | `https://forms.gle/dcZnTDsyLitvhB2x6` |
-| KV_NAMESPACE_ID | Cloudflare dashboard → KV | `6b9f010f78674b9987d69ea2add08a03` |
-| WORKER_URL | Output by Claude Code after wrangler deploy | `https://alignedgov-worker.seanahrens.workers.dev` |
-| PAGES_DEV_URL | Cloudflare Pages dashboard | `https://alignedgov.pages.dev` |
+| Variable | Value |
+|---|---|
+| LINKS_CSV_URL | `...pub?gid=1419865336&single=true&output=csv` |
+| EDITORS_CSV_URL | `...pub?gid=0&single=true&output=csv` |
+| ORGS_CSV_URL | `...pub?gid=599532148&single=true&output=csv` |
+| CONFIG_CSV_URL | `...pub?gid=1010322382&single=true&output=csv` |
+| DEADLINES_CSV_URL | `...pub?gid=950777082&single=true&output=csv` |
+| Google Form (submissions) | `https://forms.gle/s8WjAG8YENCvZVwh7` |
+| Google Form (editor apps) | `https://forms.gle/dcZnTDsyLitvhB2x6` |
+| CRM Spreadsheet | `https://docs.google.com/spreadsheets/d/1jDfHpPcuQeW78y5V6rBJALCNKd62AJPrKnUdI8JFytg/edit` |
+| Submit Form (edit) | `https://docs.google.com/forms/d/1Eg7Ww3n7xwmkef8cKq-WUij92ucKwERCsiFhmaxTMWo/edit` |
+| Apply Form (edit) | `https://docs.google.com/forms/d/1kSHsBTI6jeAP1-wtfNvQiSzZsbhB19GrDoeXl-R7dj0/edit` |
+| KV_NAMESPACE_ID | `6b9f010f78674b9987d69ea2add08a03` |
+| WORKER_URL | `https://alignedgov-worker.seanahrens.workers.dev` |
+| PAGES_DEV_URL | `https://alignedgov.pages.dev` |
+| Production URL | `https://aixdemocracy.fyi` |
 
 ## 12. Ongoing Human + AI Workflow
 
 ### Content Updates (zero code — Sean or any editor)
 - Add a link: open Approved Links tab, add row with url, category, power. Appears on site within 24 hours.
-- Approve a submission: open Submitted Links tab, copy url/category/notes to new row in Approved Links, set power.
-- Force immediate refresh: visit `https://alignedgov.pages.dev/bust`. Next page load fetches fresh data.
-- Add an editor: append row to Editors tab. Site reflects it within 24 hours.
-- Soft-delete a link: fill in `deleted_at` column with any value.
+- Approve a submission: copy url/category/notes from Submitted Links to Approved Links, set power.
+- Force immediate refresh: visit /admin and click "Bust Cache", or hit `WORKER_URL/bust` directly.
+- Add an editor: append row to Editors tab.
+- Add a deadline: append row to Deadlines tab with url and ISO date.
+- Soft-delete a link or org: fill in `deleted_at` column with any value.
 
 ### Design & Feature Changes (Claude Code)
-Open Claude Code in the repo folder. Describe what you want in plain English. Claude Code edits the relevant files and pushes — Cloudflare Pages deploys in ~30 seconds.
+Open Claude Code in the repo folder. Describe what you want in plain English. Claude Code edits the relevant files and pushes — Cloudflare Pages deploys in ~30 seconds. Worker changes require `wrangler deploy`.
+
+### Deployment
+- **Frontend:** `git push` → Cloudflare Pages auto-deploys (~30 seconds)
+- **Worker:** `wrangler deploy` from the repo directory
 
 ## 13. Future Considerations
 
-- Promote org-centric view from test page to primary navigation
 - RSS feed for subscribers
 - date_added column to display when a link was added
-- Power score shown publicly as visual indicator
 - Pagination or infinite scroll if collection grows beyond ~200 links
 - In-page submission form (Cloudflare Worker + Google service account)
 - Search across title, description, and category
