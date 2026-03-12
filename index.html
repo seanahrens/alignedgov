@@ -379,7 +379,7 @@
   <!-- Navigation -->
   <nav class="nav" role="navigation" aria-label="Main navigation">
     <div class="nav-inner">
-      <a href="/" class="nav-brand" id="nav-brand">Aligned Gov</a>
+      <a href="/" class="nav-brand" id="nav-brand"></a>
       <ul class="nav-links">
         <li><a href="/" class="active">Resource List</a></li>
         <li><a href="/submit.html">Submit a Resource</a></li>
@@ -405,10 +405,15 @@
 
     <!-- Org List -->
     <div class="org-list" id="org-list" style="display: none;"></div>
+
+    <!-- Submit CTA -->
+    <div style="text-align: center; margin: 3rem 0 1rem;">
+      <a href="/submit.html" class="btn btn-primary" style="display: inline-block; padding: 0.75rem 2rem; background: var(--color-primary); color: #fff; border-radius: 50px; font-weight: 600; font-size: 0.95rem; text-decoration: none;">Submit a Resource</a>
+    </div>
   </main>
 
   <footer class="site-footer">
-    <p>Aligned Gov &mdash; Mapping the AI &amp; Democracy ecosystem</p>
+    <p id="site-footer"></p>
   </footer>
 
   <script>
@@ -443,6 +448,7 @@
         if (config.heading) document.getElementById("site-heading").textContent = config.heading;
         if (config.subheading) document.getElementById("site-subheading").textContent = config.subheading;
         if (config.description) document.getElementById("site-description").textContent = config.description;
+        if (config.footer) document.getElementById("site-footer").textContent = config.footer;
 
         var deadlines = data.deadlines || [];
         renderDeadlines(deadlines);
