@@ -158,11 +158,9 @@
   <!-- Navigation -->
   <nav class="nav" role="navigation" aria-label="Main navigation">
     <div class="nav-inner">
-      <a href="/" class="nav-brand">Aligned Gov</a>
+      <a href="/" class="nav-brand" id="nav-brand">Aligned Gov</a>
       <ul class="nav-links">
-        <li><a href="/" class="active">Links</a></li>
-        <li><a href="/orgs.html">Orgs</a></li>
-        <li><a href="/editors.html">Editors</a></li>
+        <li><a href="/resources.html">Resource List</a></li>
         <li><a href="/submit.html">Submit a Resource</a></li>
       </ul>
     </div>
@@ -239,6 +237,7 @@
         allLinks = data.links || [];
         // Apply dynamic config if available
         var config = data.config || {};
+        if (config.title) document.getElementById("nav-brand").textContent = config.title;
         if (config.heading) document.getElementById("site-heading").textContent = config.heading;
         if (config.subheading) document.getElementById("site-subheading").textContent = config.subheading;
         if (config.description) document.getElementById("site-description").textContent = config.description;

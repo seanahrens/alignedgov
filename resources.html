@@ -1,0 +1,554 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AlignedGov — Resource List</title>
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+  <link rel="stylesheet" href="styles.css">
+  <style>
+    /* ─── Org Card Layout ─────────────────────────────────────────────── */
+    .org-list {
+      display: flex;
+      flex-direction: column;
+      gap: 1.25rem;
+    }
+
+    .org-card {
+      display: flex;
+      gap: 1.5rem;
+      background: var(--color-surface);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-md);
+      padding: 1.25rem 1.5rem;
+    }
+
+    /* Left side: org identity (clickable) */
+    .org-identity {
+      flex: 0 0 280px;
+      min-width: 0;
+      text-decoration: none;
+      color: inherit;
+      padding: 0.75rem;
+      margin: -0.75rem;
+      border-radius: var(--radius-sm);
+      transition: background 0.15s;
+      display: block;
+    }
+
+    a.org-identity:hover {
+      background: rgba(45, 91, 227, 0.06);
+      text-decoration: none;
+    }
+
+    .org-header {
+      display: flex;
+      align-items: flex-start;
+      gap: 0.6rem;
+      margin-bottom: 0.5rem;
+    }
+
+    .org-favicon {
+      flex-shrink: 0;
+      width: 28px;
+      height: 28px;
+      border-radius: 6px;
+      background: var(--color-border-light);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .org-favicon img {
+      width: 20px;
+      height: 20px;
+      border-radius: 3px;
+    }
+
+    .org-name {
+      font-size: 1.05rem;
+      font-weight: 650;
+      color: var(--color-text);
+      text-decoration: none;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+
+
+    .org-desc {
+      font-size: 0.82rem;
+      color: var(--color-text-secondary);
+      line-height: 1.45;
+      display: -webkit-box;
+      -webkit-line-clamp: 3;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+      margin-bottom: 0.5rem;
+    }
+
+    .org-url {
+      font-size: 0.75rem;
+      color: var(--color-primary);
+      margin-bottom: 0.6rem;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+
+    .org-badge {
+      display: inline-block;
+      padding: 0.12rem 0.5rem;
+      border-radius: 50px;
+      background: var(--color-badge-bg);
+      color: var(--color-badge-text);
+      font-size: 0.65rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      margin-bottom: 0.6rem;
+    }
+
+    .org-people-label {
+      font-size: 0.72rem;
+      font-weight: 600;
+      color: var(--color-text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      margin-bottom: 0.25rem;
+    }
+
+    .org-people-list {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+    }
+
+    .org-people-list li {
+      font-size: 0.8rem;
+      color: var(--color-text-secondary);
+      line-height: 1.5;
+    }
+
+    /* Right side: stacked link list */
+    .org-links {
+      flex: 1;
+      min-width: 0;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .org-link-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 0.7rem;
+      padding: 0.6rem 0.5rem;
+      margin: 0 -0.5rem;
+      border-bottom: 1px solid var(--color-border-light);
+      border-radius: var(--radius-sm);
+      text-decoration: none;
+      color: inherit;
+      min-width: 0;
+      transition: background 0.15s;
+    }
+
+    .org-link-item:last-child {
+      border-bottom: none;
+    }
+
+    .org-link-item:hover {
+      background: rgba(45, 91, 227, 0.06);
+      text-decoration: none;
+    }
+
+    .org-link-favicon {
+      flex-shrink: 0;
+      width: 20px;
+      height: 20px;
+      border-radius: 4px;
+      background: var(--color-border-light);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-top: 2px;
+    }
+
+    .org-link-favicon img {
+      width: 16px;
+      height: 16px;
+      border-radius: 2px;
+    }
+
+    .org-link-text {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .org-link-meta {
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+      margin-bottom: 0.15rem;
+    }
+
+    .org-link-source {
+      font-size: 0.68rem;
+      color: var(--color-text-muted);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .org-link-badge {
+      display: inline-block;
+      padding: 0.08rem 0.4rem;
+      border-radius: 50px;
+      background: var(--color-badge-bg);
+      color: var(--color-badge-text);
+      font-size: 0.58rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+
+    .org-link-title {
+      font-size: 0.82rem;
+      font-weight: 600;
+      line-height: 1.3;
+      color: var(--color-text);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .org-link-desc {
+      font-size: 0.75rem;
+      color: var(--color-text-secondary);
+      line-height: 1.35;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+
+    .org-section-label {
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: var(--color-text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-top: 1.5rem;
+      margin-bottom: 0.75rem;
+      padding-bottom: 0.5rem;
+      border-bottom: 1px solid var(--color-border-light);
+    }
+
+    /* Responsive: stack on smaller screens */
+    @media (max-width: 768px) {
+      .org-card {
+        flex-direction: column;
+        gap: 1rem;
+      }
+      .org-identity {
+        flex: none;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Navigation -->
+  <nav class="nav" role="navigation" aria-label="Main navigation">
+    <div class="nav-inner">
+      <a href="/" class="nav-brand" id="nav-brand">Aligned Gov</a>
+      <ul class="nav-links">
+        <li><a href="/resources.html" class="active">Resource List</a></li>
+        <li><a href="/submit.html">Submit a Resource</a></li>
+      </ul>
+    </div>
+  </nav>
+
+  <main class="container">
+    <div class="hero">
+      <h1 id="site-heading"></h1>
+      <p class="subheading" id="site-subheading"></p>
+      <p class="description" id="site-description"></p>
+    </div>
+
+    <!-- Loading State -->
+    <div class="loading" id="loading">
+      <div class="loading-spinner"></div>
+      <p>Loading ecosystem...</p>
+    </div>
+
+    <!-- Org List -->
+    <div class="org-list" id="org-list" style="display: none;"></div>
+  </main>
+
+  <footer class="site-footer">
+    <p>Aligned Gov &mdash; Mapping the AI &amp; Democracy ecosystem</p>
+  </footer>
+
+  <script>
+    var WORKER_URL = "https://alignedgov-worker.seanahrens.workers.dev";
+
+    function faviconUrl(url) {
+      try {
+        var domain = new URL(url).hostname;
+        return "https://www.google.com/s2/favicons?domain=" + encodeURIComponent(domain) + "&sz=64";
+      } catch { return ""; }
+    }
+
+    function getDomain(url) {
+      try { return new URL(url).hostname.replace(/^www\./, ""); }
+      catch { return url; }
+    }
+
+    function isSameText(a, b) {
+      if (!a || !b) return false;
+      var norm = function(s) { return s.trim().toLowerCase().replace(/[.\s]+$/g, ""); };
+      return norm(a) === norm(b);
+    }
+
+    async function init() {
+      try {
+        var resp = await fetch(WORKER_URL + "/api/links");
+        var data = await resp.json();
+
+        // Apply dynamic config
+        var config = data.config || {};
+        if (config.title) document.getElementById("nav-brand").textContent = config.title;
+        if (config.heading) document.getElementById("site-heading").textContent = config.heading;
+        if (config.subheading) document.getElementById("site-subheading").textContent = config.subheading;
+        if (config.description) document.getElementById("site-description").textContent = config.description;
+
+        var orgs = data.orgs || [];
+        var links = data.links || [];
+
+        renderOrgView(orgs, links);
+      } catch (err) {
+        document.getElementById("loading").innerHTML =
+          "<p>Failed to load ecosystem. Please try again later.</p>";
+      }
+    }
+
+    function renderOrgView(orgs, links) {
+      var container = document.getElementById("org-list");
+      var loading = document.getElementById("loading");
+      loading.style.display = "none";
+      container.style.display = "flex";
+
+      // Build a map of org URL → links
+      // Normalize URLs for matching (trim trailing slashes)
+      function normalizeUrl(u) {
+        return (u || "").trim().replace(/\/+$/, "").toLowerCase();
+      }
+
+      var orgLinkMap = {};
+      var orphanLinks = [];
+
+      // Index all org URLs
+      var orgUrlSet = new Set();
+      orgs.forEach(function(org) {
+        var key = normalizeUrl(org.url);
+        orgUrlSet.add(key);
+        orgLinkMap[key] = [];
+      });
+
+      // Assign links to orgs
+      links.forEach(function(link) {
+        if (link.org) {
+          var key = normalizeUrl(link.org);
+          if (orgLinkMap[key]) {
+            orgLinkMap[key].push(link);
+          } else {
+            orphanLinks.push(link);
+          }
+        } else {
+          orphanLinks.push(link);
+        }
+      });
+
+      // Render each org
+      orgs.forEach(function(org) {
+        var key = normalizeUrl(org.url);
+        var orgLinks = orgLinkMap[key] || [];
+        container.appendChild(createOrgCard(org, orgLinks));
+      });
+
+      // Render orphan links in a catch-all section
+      if (orphanLinks.length > 0) {
+        var label = document.createElement("div");
+        label.className = "org-section-label";
+        label.textContent = "Independent Resources";
+        container.appendChild(label);
+
+        var independentOrg = {
+          url: null,
+          title: "Independent",
+          description: "Resources not affiliated with a specific organization.",
+          people: [],
+          category: null,
+        };
+        container.appendChild(createOrgCard(independentOrg, orphanLinks));
+      }
+    }
+
+    function createOrgCard(org, orgLinks) {
+      var card = document.createElement("div");
+      card.className = "org-card";
+
+      // ─── Left: Org identity (whole section is clickable) ───
+      var identity;
+      if (org.url) {
+        identity = document.createElement("a");
+        identity.href = org.url;
+        identity.target = "_blank";
+        identity.rel = "noopener noreferrer";
+      } else {
+        identity = document.createElement("div");
+      }
+      identity.className = "org-identity";
+
+      // Header with favicon + name
+      var header = document.createElement("div");
+      header.className = "org-header";
+
+      if (org.url) {
+        var favWrap = document.createElement("div");
+        favWrap.className = "org-favicon";
+        var favImg = document.createElement("img");
+        favImg.src = faviconUrl(org.url);
+        favImg.alt = "";
+        favImg.loading = "lazy";
+        favImg.onerror = function() { favImg.style.display = "none"; };
+        favWrap.appendChild(favImg);
+        header.appendChild(favWrap);
+      }
+
+      var name = document.createElement("div");
+      name.className = "org-name";
+      name.textContent = org.title || org.site_name || (org.url ? getDomain(org.url) : "Independent");
+      header.appendChild(name);
+
+      identity.appendChild(header);
+
+      // Category badge
+      if (org.category) {
+        var badge = document.createElement("span");
+        badge.className = "org-badge";
+        badge.textContent = org.category;
+        identity.appendChild(badge);
+      }
+
+      // Description
+      if (org.description) {
+        var desc = document.createElement("div");
+        desc.className = "org-desc";
+        desc.textContent = org.description;
+        identity.appendChild(desc);
+      }
+
+      // URL display
+      if (org.url) {
+        var urlDisplay = document.createElement("div");
+        urlDisplay.className = "org-url";
+        urlDisplay.textContent = getDomain(org.url);
+        identity.appendChild(urlDisplay);
+      }
+
+      // People
+      if (org.people && org.people.length > 0) {
+        var peopleLabel = document.createElement("div");
+        peopleLabel.className = "org-people-label";
+        peopleLabel.textContent = "Key People";
+        identity.appendChild(peopleLabel);
+
+        var peopleList = document.createElement("ul");
+        peopleList.className = "org-people-list";
+        org.people.forEach(function(person) {
+          var li = document.createElement("li");
+          li.textContent = person;
+          peopleList.appendChild(li);
+        });
+        identity.appendChild(peopleList);
+      }
+
+      card.appendChild(identity);
+
+      // ─── Right: Stacked link cards ───
+      var linksContainer = document.createElement("div");
+      linksContainer.className = "org-links";
+
+      orgLinks.forEach(function(link) {
+        linksContainer.appendChild(createOrgLinkCard(link));
+      });
+
+      card.appendChild(linksContainer);
+      return card;
+    }
+
+    function createOrgLinkCard(link) {
+      var domain = getDomain(link.url);
+      var source = link.site_name || domain;
+      var title = link.title || link.url;
+
+      var a = document.createElement("a");
+      a.className = "org-link-item";
+      a.href = link.url;
+      a.target = "_blank";
+      a.rel = "noopener noreferrer";
+
+      // Favicon
+      var favWrap = document.createElement("div");
+      favWrap.className = "org-link-favicon";
+      var favImg = document.createElement("img");
+      favImg.src = faviconUrl(link.url);
+      favImg.alt = "";
+      favImg.loading = "lazy";
+      favImg.onerror = function() { favImg.style.display = "none"; };
+      favWrap.appendChild(favImg);
+      a.appendChild(favWrap);
+
+      // Text
+      var text = document.createElement("div");
+      text.className = "org-link-text";
+
+      // Meta line
+      var meta = document.createElement("div");
+      meta.className = "org-link-meta";
+
+      var sourceEl = document.createElement("span");
+      sourceEl.className = "org-link-source";
+      sourceEl.textContent = source;
+      meta.appendChild(sourceEl);
+
+      text.appendChild(meta);
+
+      // Title
+      var h3 = document.createElement("div");
+      h3.className = "org-link-title";
+      h3.textContent = title;
+      text.appendChild(h3);
+
+      // Description
+      var desc = link.description;
+      if (desc && !isSameText(desc, title) && !isSameText(desc, source)) {
+        var descEl = document.createElement("div");
+        descEl.className = "org-link-desc";
+        descEl.textContent = desc;
+        text.appendChild(descEl);
+      }
+
+      a.appendChild(text);
+      return a;
+    }
+
+    init();
+  </script>
+</body>
+</html>
