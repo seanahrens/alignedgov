@@ -3,7 +3,26 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Aligned Gov</title>
+  <title>AlignedGov — Aligned AI Requires Aligned Governance</title>
+  <meta name="description" content="An ecosystem map of orgs, people, and papers focused on the intersection of AI &amp; Democracy">
+
+  <!-- Open Graph -->
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="AlignedGov">
+  <meta property="og:description" content="An ecosystem map of orgs, people, and papers focused on the intersection of AI &amp; Democracy">
+  <meta property="og:url" content="https://alignedgov.org">
+  <meta property="og:image" content="https://alignedgov.pages.dev/og-image.png">
+  <meta property="og:site_name" content="AlignedGov">
+
+  <!-- Twitter Card -->
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="AlignedGov">
+  <meta name="twitter:description" content="An ecosystem map of orgs, people, and papers focused on the intersection of AI &amp; Democracy">
+  <meta name="twitter:image" content="https://alignedgov.pages.dev/og-image.png">
+
+  <!-- Favicon -->
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+
   <link rel="stylesheet" href="styles.css">
   <style>
     /* ─── Compact Card Layout (test) ──────────────────────────────────────── */
@@ -167,8 +186,15 @@
               <stop offset="50%" stop-color="#2d5be3" stop-opacity="0.18" />
               <stop offset="100%" stop-color="#2d5be3" stop-opacity="0.08" />
             </linearGradient>
+            <radialGradient id="center-fade" cx="50%" cy="45%" r="38%">
+              <stop offset="0%" stop-color="#f8f9fa" stop-opacity="0.92" />
+              <stop offset="60%" stop-color="#f8f9fa" stop-opacity="0.55" />
+              <stop offset="100%" stop-color="#f8f9fa" stop-opacity="0" />
+            </radialGradient>
           </defs>
           <rect width="1200" height="400" fill="url(#bg-grad)" />
+          <!-- Radial fade keeps center clear for text readability -->
+          <rect width="1200" height="400" fill="url(#center-fade)" />
 
           <!-- Connection lines -->
           <g stroke="url(#line-grad)" stroke-width="1.5" fill="none">
