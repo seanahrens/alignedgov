@@ -71,6 +71,77 @@
       color: var(--color-primary);
       font-weight: 500;
     }
+
+    /* ─── Become an Editor ───────────────────────────────────────────── */
+    .become-editor {
+      max-width: 700px;
+      margin: 0 auto;
+    }
+    .become-editor h2 {
+      text-align: center;
+      margin-bottom: 0.5rem;
+    }
+    .become-editor .intro {
+      font-size: 0.95rem;
+      color: var(--color-text-secondary);
+      line-height: 1.65;
+      margin-bottom: 1.5rem;
+    }
+    .collapse-section {
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-md);
+      margin-bottom: 0.75rem;
+      overflow: hidden;
+    }
+    .collapse-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0.85rem 1.25rem;
+      background: var(--color-surface);
+      cursor: pointer;
+      font-weight: 600;
+      font-size: 0.95rem;
+      color: var(--color-text);
+      user-select: none;
+      transition: background 0.15s;
+    }
+    .collapse-header:hover {
+      background: rgba(45, 91, 227, 0.04);
+    }
+    .collapse-chevron {
+      width: 18px;
+      height: 18px;
+      transition: transform 0.2s;
+      flex-shrink: 0;
+      color: var(--color-text-muted);
+    }
+    .collapse-section.open .collapse-chevron {
+      transform: rotate(180deg);
+    }
+    .collapse-body {
+      display: none;
+      padding: 0 1.25rem 1.25rem;
+      font-size: 0.9rem;
+      color: var(--color-text-secondary);
+      line-height: 1.65;
+    }
+    .collapse-section.open .collapse-body {
+      display: block;
+    }
+    .collapse-body ul {
+      padding-left: 1.25rem;
+      margin: 0.5rem 0;
+    }
+    .collapse-body li {
+      margin-bottom: 0.35rem;
+    }
+    .collapse-body p {
+      margin: 0.75rem 0;
+    }
+    .collapse-body strong {
+      color: var(--color-text);
+    }
   </style>
 </head>
 <body>
@@ -126,13 +197,7 @@
     <!-- Editors Tab -->
     <div class="tab-panel" id="tab-editors">
       <div class="editors-ethos" id="editors-ethos" style="display: none;">
-        <p>This map is built in the open. We believe the conversation around AI and democracy belongs to everyone working on it — not a single organization or perspective. Our editors are rotating stewards, not gatekeepers. They bring domain knowledge and care to keep the collection high-signal and representative, while ensuring every serious effort in this space has a place here.</p>
-        <p style="margin-top: 2rem;">
-          <a class="btn-primary" href="https://forms.gle/dcZnTDsyLitvhB2x6" target="_blank" rel="noopener noreferrer">
-            Apply to be a Rotating Editor
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
-          </a>
-        </p>
+        <p>This map is built in the open. We believe the conversation around AI and democracy belongs to everyone working on it &mdash; not a single organization or perspective. Our editors are rotating stewards, not gatekeepers. They bring domain knowledge and care to keep the collection high-signal and representative, while ensuring every serious effort in this space has a place here.</p>
       </div>
 
       <!-- Loading State -->
@@ -144,6 +209,50 @@
       <!-- Editor Grid -->
       <div class="editor-grid" id="editor-grid" style="display: none;">
         <!-- Populated by JS -->
+      </div>
+
+      <!-- Become an Editor -->
+      <div class="become-editor">
+        <h2>Become an Editor</h2>
+        <p class="intro">This catalog exists because the AI &times; democracy ecosystem deserves a shared resource that belongs to all of it &mdash; not to any single organization, funder, or point of view. Editors are the people who make that real. You're not just maintaining a list; you're helping a fragmented field see itself whole, find collaborators, and move faster together.</p>
+        <p class="intro" style="text-align:center; font-weight:600; color:var(--color-text);">It's a small role with outsized leverage.</p>
+        <p class="intro">Editors serve in 3-month terms, renewable, though we actively seek fresh perspectives with each rotation. Expect to spend 1&ndash;4 hours per week, depending on submission volume and ecosystem activity.</p>
+
+        <div class="collapse-section open">
+          <div class="collapse-header" onclick="this.parentElement.classList.toggle('open')">
+            <span>During your term, you'll&hellip;</span>
+            <svg class="collapse-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+          </div>
+          <div class="collapse-body">
+            <ul>
+              <li>Review, approve, deny, and organize new resource submissions using our shared CRM within 3&ndash;4 days of receipt</li>
+              <li>Actively promote the catalog within your network to surface submissions from people who know this space well</li>
+              <li>Flag when the catalog's categories, coverage, or structure need to evolve as the space shifts</li>
+              <li>Bring judgment to what belongs here &mdash; and what doesn't</li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="collapse-section">
+          <div class="collapse-header" onclick="this.parentElement.classList.toggle('open')">
+            <span>What good editorship looks like</span>
+            <svg class="collapse-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+          </div>
+          <div class="collapse-body">
+            <p><strong>Be connected, not omniscient.</strong> You don't need to know every corner of this space &mdash; much of what gets added will come through submissions. What matters is that you can get the catalog in front of the right people: researchers, practitioners, and organizations who'll recognize what's missing and send it your way. Your network is as valuable as your knowledge.</p>
+            <p><strong>Judge signal from performance.</strong> Some efforts in this space have outsized visibility relative to their impact. Others do serious work quietly. Good editors can tell the difference, and they're honest about it even when it's uncomfortable.</p>
+            <p><strong>Curate, don't collect.</strong> The goal isn't comprehensiveness for its own sake. The goal is that everything here is worth someone's time &mdash; that it helps people find each other, share knowledge, and work together more effectively. That requires taste, restraint, and occasional hard calls.</p>
+            <p><strong>Watch the edges.</strong> The AI &times; democracy space is moving fast. Part of your job is noticing when the catalog's categories, tags, or coverage need to evolve &mdash; and flagging it before it becomes obvious to everyone.</p>
+            <p><strong>Steward over self-interest.</strong> You're almost certainly a stakeholder in this space. That's why we want you. But for 3 months, your job is to represent the whole ecosystem fairly &mdash; setting aside your own affiliations, rivalries, and preferences in service of a public good that belongs to everyone working on this problem.</p>
+          </div>
+        </div>
+
+        <p style="text-align: center; margin-top: 2rem;">
+          <a class="btn-primary" href="https://forms.gle/dcZnTDsyLitvhB2x6" target="_blank" rel="noopener noreferrer">
+            Apply to be a Rotating Editor
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+          </a>
+        </p>
       </div>
     </div>
   </main>
