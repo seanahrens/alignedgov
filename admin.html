@@ -55,11 +55,50 @@
     }
     .bust-btn:hover { opacity: 0.85; }
     .bust-btn:disabled { opacity: 0.5; cursor: default; }
-    .bust-status {
+    .admin-status {
       font-size: 0.82rem;
       color: var(--color-text-secondary);
       margin-top: 0.5rem;
       text-align: center;
+    }
+    .admin-section {
+      margin-top: 2rem;
+      padding-top: 1.5rem;
+      border-top: 1px solid var(--color-border-light);
+    }
+    .admin-section h2 {
+      font-size: 1rem;
+      font-weight: 700;
+      color: var(--color-text);
+      margin-bottom: 1rem;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+    .admin-key-input {
+      padding: 0.5rem 0.75rem;
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-sm);
+      font-size: 0.88rem;
+      font-family: var(--font-sans);
+      width: 100%;
+      max-width: 240px;
+      margin-bottom: 0.75rem;
+    }
+    .admin-key-input:focus {
+      border-color: var(--color-primary);
+      outline: none;
+    }
+    .digest-result {
+      margin-top: 0.75rem;
+      font-size: 0.85rem;
+      color: var(--color-text-secondary);
+    }
+    .digest-result a {
+      color: var(--color-primary);
+      font-weight: 600;
+    }
+    .digest-result.error {
+      color: #dc2626;
     }
   </style>
 </head>
@@ -90,7 +129,7 @@
         </div>
         <button class="bust-btn" id="bust-btn" onclick="bustCache()">Bust</button>
       </div>
-      <div class="bust-status" id="bust-status"></div>
+      <div class="admin-status" id="bust-status"></div>
 
       <div class="admin-item">
         <div>
@@ -122,6 +161,30 @@
         </div>
       </div>
 
+      <div class="admin-section">
+        <h2>Newsletter Digest</h2>
+
+        <div class="admin-item" style="flex-direction: column; align-items: stretch; gap: 0.75rem;">
+          <div>
+            <div class="admin-item-label">Create Draft Digest</div>
+            <div class="admin-item-desc">Generates the monthly email with new links and saves it as a draft on Kit. You can preview and send a test from Kit's UI.</div>
+          </div>
+          <div style="display: flex; align-items: center; gap: 0.75rem;">
+            <input type="password" class="admin-key-input" id="admin-key" placeholder="Admin key">
+            <button class="bust-btn" id="digest-btn" onclick="createDraftDigest()">Create Draft</button>
+          </div>
+          <div class="digest-result" id="digest-result"></div>
+        </div>
+
+        <div class="admin-item">
+          <div>
+            <div class="admin-item-label">Kit Dashboard</div>
+            <div class="admin-item-desc">Manage subscribers and broadcasts</div>
+          </div>
+          <a href="https://app.kit.com/broadcasts" target="_blank" rel="noopener noreferrer">Open &rarr;</a>
+        </div>
+      </div>
+
     </div>
   </main>
 
@@ -143,6 +206,48 @@
         if (config.footer) document.getElementById("site-footer").textContent = config.footer;
       })
       .catch(function() {});
+
+    function createDraftDigest() {
+      var btn = document.getElementById("digest-btn");
+      var result = document.getElementById("digest-result");
+      var key = document.getElementById("admin-key").value;
+      if (!key) { result.textContent = "Enter admin key"; result.className = "digest-result error"; return; }
+
+      btn.disabled = true;
+      btn.textContent = "Creating...";
+      result.textContent = "";
+      result.className = "digest-result";
+
+      fetch(WORKER_URL + "/api/draft-digest", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "X-Admin-Key": key },
+      })
+        .then(function(r) { return r.json().then(function(d) { return { ok: r.ok, data: d }; }); })
+        .then(function(res) {
+          if (res.data.error === "Unauthorized") {
+            result.textContent = "Invalid admin key";
+            result.className = "digest-result error";
+          } else if (res.data.linkCount === 0) {
+            result.textContent = "No new links since last send.";
+            result.className = "digest-result";
+          } else if (res.data.success) {
+            result.innerHTML = "Draft created with " + res.data.linkCount + " links. " +
+              '<a href="' + res.data.kitUrl + '" target="_blank" rel="noopener noreferrer">View on Kit &rarr;</a>';
+            result.className = "digest-result";
+          } else {
+            result.textContent = res.data.error || "Something went wrong";
+            result.className = "digest-result error";
+          }
+          btn.disabled = false;
+          btn.textContent = "Create Draft";
+        })
+        .catch(function() {
+          result.textContent = "Network error";
+          result.className = "digest-result error";
+          btn.disabled = false;
+          btn.textContent = "Create Draft";
+        });
+    }
 
     function bustCache() {
       var btn = document.getElementById("bust-btn");

@@ -32,6 +32,8 @@ export default {
       response = await handleLinks(env, ctx);
     } else if (url.pathname === "/api/subscribe" && request.method === "POST") {
       response = await handleSubscribe(request, env);
+    } else if (url.pathname === "/api/draft-digest" && request.method === "POST") {
+      response = await handleDraftDigest(request, env);
     } else if (url.pathname === "/api/purge" || url.pathname === "/bust") {
       response = await handlePurge(url, env);
     } else {
@@ -788,16 +790,15 @@ async function handleSubscribe(request, env) {
   }
 }
 
-// ─── Monthly Digest (Cron) ──────────────────────────────────────────────────
+// ─── Monthly Digest ─────────────────────────────────────────────────────────
 
-async function sendMonthlyDigest(env) {
+// Shared: generate digest content (subject, html, newLinks) without sending
+async function generateDigest(env) {
   const LAST_SEND_KEY = "newsletter:last_send";
 
-  // Get last send timestamp (or epoch if never sent)
   const lastSendRaw = await env.KV.get(LAST_SEND_KEY);
   const lastSend = lastSendRaw ? new Date(lastSendRaw) : new Date(0);
 
-  // Fetch the current dataset to get link metadata
   const [linksCSV, configCSV] = await Promise.all([
     fetchText(env.LINKS_CSV_URL),
     fetchText(env.CONFIG_CSV_URL).catch(() => ""),
@@ -811,7 +812,6 @@ async function sendMonthlyDigest(env) {
     if (key) config[key] = value;
   }
 
-  // Find new links by checking newsletter tracking keys
   const newLinks = [];
   for (const row of allLinks) {
     const url = (row.url || "").trim();
@@ -824,7 +824,6 @@ async function sendMonthlyDigest(env) {
 
     const firstSeen = new Date(trackData.first_seen);
     if (firstSeen > lastSend) {
-      // Get enriched metadata from OG cache
       const kvKey = await hashUrl(url);
       const ogData = await env.KV.get(kvKey, "json");
 
@@ -838,12 +837,9 @@ async function sendMonthlyDigest(env) {
     }
   }
 
-  if (newLinks.length === 0) return; // Nothing new, skip sending
-
   const siteName = config.title || "AI×Democracy.FYI";
   const subject = `${siteName} — ${newLinks.length} New Resource${newLinks.length === 1 ? "" : "s"} This Month`;
 
-  // Build HTML email
   const linkRows = newLinks.map((link) => `
     <tr>
       <td style="padding: 12px 0; border-bottom: 1px solid #e2e4e9;">
@@ -868,7 +864,16 @@ async function sendMonthlyDigest(env) {
   </p>
 </div>`;
 
-  // Send via Kit broadcast API — schedule 1 minute from now
+  const previewText = `${newLinks.length} new resource${newLinks.length === 1 ? "" : "s"} added to ${siteName}`;
+
+  return { subject, html, previewText, newLinks, siteName };
+}
+
+// Cron handler: generate + send broadcast
+async function sendMonthlyDigest(env) {
+  const digest = await generateDigest(env);
+  if (digest.newLinks.length === 0) return;
+
   const sendAt = new Date(Date.now() + 60 * 1000).toISOString();
 
   const resp = await fetch("https://api.kit.com/v4/broadcasts", {
@@ -878,20 +883,66 @@ async function sendMonthlyDigest(env) {
       "X-Kit-Api-Key": env.KIT_API_KEY,
     },
     body: JSON.stringify({
-      content: html,
-      subject: subject,
-      description: `Monthly digest — ${newLinks.length} new resources`,
+      content: digest.html,
+      subject: digest.subject,
+      description: `Monthly digest — ${digest.newLinks.length} new resources`,
       public: false,
       published_at: new Date().toISOString(),
-      preview_text: `${newLinks.length} new resource${newLinks.length === 1 ? "" : "s"} added to ${siteName}`,
+      preview_text: digest.previewText,
       send_at: sendAt,
       subscriber_filter: [{ all: [{ type: "status", status: "active" }] }],
     }),
   });
 
   if (resp.ok) {
-    await env.KV.put(LAST_SEND_KEY, new Date().toISOString());
+    await env.KV.put("newsletter:last_send", new Date().toISOString());
   }
+}
+
+// Admin endpoint: create a draft broadcast (no send) for preview
+async function handleDraftDigest(request, env) {
+  // Auth check
+  const authKey = request.headers.get("X-Admin-Key");
+  if (!authKey || authKey !== env.ADMIN_KEY) {
+    return jsonResponse({ error: "Unauthorized" }, 401);
+  }
+
+  const digest = await generateDigest(env);
+  if (digest.newLinks.length === 0) {
+    return jsonResponse({ error: "No new links since last send", linkCount: 0 }, 200);
+  }
+
+  // Create as draft (send_at: null)
+  const resp = await fetch("https://api.kit.com/v4/broadcasts", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "X-Kit-Api-Key": env.KIT_API_KEY,
+    },
+    body: JSON.stringify({
+      content: digest.html,
+      subject: digest.subject,
+      description: `[DRAFT] Monthly digest — ${digest.newLinks.length} new resources`,
+      public: false,
+      preview_text: digest.previewText,
+    }),
+  });
+
+  const data = await resp.json().catch(() => ({}));
+
+  if (!resp.ok) {
+    return jsonResponse({ error: "Kit API error", details: data }, resp.status);
+  }
+
+  const broadcastId = data.broadcast && data.broadcast.id;
+
+  return jsonResponse({
+    success: true,
+    linkCount: digest.newLinks.length,
+    subject: digest.subject,
+    broadcastId: broadcastId,
+    kitUrl: broadcastId ? `https://app.kit.com/broadcasts/${broadcastId}` : null,
+  });
 }
 
 function escapeHtml(str) {
