@@ -13,5 +13,8 @@ DEADLINES_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRrCeKNL6dL
 binding = "KV"
 id = "6b9f010f78674b9987d69ea2add08a03"
 
+[[send_email]]
+name = "SEND_EMAIL"
+
 [triggers]
 crons = ["0 9 1 * *"]  # 1st of each month at 9:00 AM UTC

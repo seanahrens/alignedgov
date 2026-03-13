@@ -947,13 +947,12 @@ async function generateDigest(env) {
   return { subject, html, previewText, newLinks, deadlines, siteName };
 }
 
-// Cron handler: generate + send broadcast
+// Cron handler: generate draft broadcast (human must approve + send from Kit)
 async function sendMonthlyDigest(env) {
   const digest = await generateDigest(env);
   if (digest.newLinks.length === 0 && digest.deadlines.length === 0) return;
 
-  const sendAt = new Date(Date.now() + 60 * 1000).toISOString();
-
+  // Create as draft (no send_at) — requires human approval in Kit
   const resp = await fetch("https://api.kit.com/v4/broadcasts", {
     method: "POST",
     headers: {
@@ -965,15 +964,47 @@ async function sendMonthlyDigest(env) {
       subject: digest.subject,
       description: `Monthly digest — ${digest.deadlines.length} deadlines, ${digest.newLinks.length} new resources`,
       public: false,
-      published_at: new Date().toISOString(),
       preview_text: digest.previewText,
-      send_at: sendAt,
-      subscriber_filter: [{ all: [{ type: "status", status: "active" }] }],
     }),
   });
 
-  if (resp.ok) {
-    await env.KV.put("newsletter:last_send", new Date().toISOString());
+  if (!resp.ok) return;
+
+  const data = await resp.json().catch(() => ({}));
+  const broadcastId = data.broadcast && data.broadcast.id;
+
+  // Update last_send so the "new links" window resets for next month
+  await env.KV.put("newsletter:last_send", new Date().toISOString());
+
+  // Send notification email to admin
+  if (env.SEND_EMAIL && env.NOTIFY_EMAIL) {
+    try {
+      const kitUrl = broadcastId
+        ? `https://app.kit.com/campaigns/${broadcastId}/draft`
+        : "https://app.kit.com/campaigns?status=draft";
+
+      const rawEmail = [
+        `From: noreply@alignedgov.org`,
+        `To: ${env.NOTIFY_EMAIL}`,
+        `Subject: AlignedGov: Monthly digest draft ready for review`,
+        `Content-Type: text/html; charset=utf-8`,
+        ``,
+        `<p>A new monthly digest draft has been created on Kit with <strong>${digest.deadlines.length}</strong> deadline(s) and <strong>${digest.newLinks.length}</strong> new resource(s).</p>`,
+        `<p>Subject: <em>${escapeHtml(digest.subject)}</em></p>`,
+        `<p><a href="${kitUrl}">Review and send the draft on Kit</a></p>`,
+      ].join("\r\n");
+
+      const { EmailMessage } = await import("cloudflare:email");
+      const message = new EmailMessage(
+        "noreply@alignedgov.org",
+        env.NOTIFY_EMAIL,
+        new TextEncoder().encode(rawEmail)
+      );
+      await env.SEND_EMAIL.send(message);
+    } catch (e) {
+      // Notification failure shouldn't block the draft creation
+      console.error("Failed to send notification email:", e.message);
+    }
   }
 }
 

@@ -193,7 +193,7 @@ Visitors can subscribe to a monthly email digest via a signup form on the homepa
 6. Subscriber clicks confirmation link → status becomes "active" on Kit
 7. Frontend shows inline success/error message (no Kit-branded UI on the site)
 
-### 7.3 Monthly Digest (Cron)
+### 7.3 Monthly Digest (Cron → Draft for Human Approval)
 
 A Cloudflare Worker Cron Trigger fires on the 1st of each month at 9 AM UTC (`0 9 1 * *`).
 
@@ -201,7 +201,11 @@ The digest includes two sections:
 - **Opportunities — Upcoming Deadlines:** All deadlines not more than 7 days past (same filter as homepage), sorted ascending by date. Title/description sourced from sheet overrides first, then OG metadata from KV.
 - **New Resources:** Links whose `first_seen` timestamp in KV is after the `newsletter:last_send` timestamp. Title/description sourced from sheet overrides first, then OG metadata from KV.
 
-The email is only sent if there is at least one deadline OR one new link. After a successful send, `newsletter:last_send` is updated in KV.
+**Draft-only workflow:** The cron creates a **draft** broadcast on Kit (no `send_at`). The email is **not** sent automatically — a human must review and approve it from the Kit dashboard. After the draft is successfully created, `newsletter:last_send` is updated in KV (so the "new links" window resets correctly for the next month).
+
+No draft is created if there are zero deadlines and zero new links.
+
+**Admin notification:** After the draft is created, the Worker sends a notification email to `NOTIFY_EMAIL` via Cloudflare Email Routing, with a direct link to the draft on Kit. This reminds the admin to review and send.
 
 **Subject line logic:**
 
@@ -210,7 +214,7 @@ The email is only sent if there is at least one deadline OR one new link. After 
 | Yes | Yes | New Resources & Upcoming Deadlines |
 | Yes | No | What's new this month? |
 | No | Yes | Upcoming Deadlines |
-| No | No | *(no email sent)* |
+| No | No | *(no draft created)* |
 
 ### 7.4 Link First-Seen Tracking
 
@@ -229,7 +233,10 @@ Protected by an admin key sent via `X-Admin-Key` header, validated against the `
 | Kit Form ID | Stored as Worker secret `KIT_FORM_ID` |
 | Kit API Key | Stored as Worker secret `KIT_API_KEY` |
 | Admin Key | Stored as Worker secret `ADMIN_KEY` |
+| Notify Email | Stored as Worker secret `NOTIFY_EMAIL` — receives draft-ready notifications |
 | Kit Dashboard (drafts) | https://app.kit.com/campaigns?status=draft |
+
+**Cloudflare Email Routing setup:** To enable draft notifications, Email Routing must be enabled on the domain in the Cloudflare dashboard, and a `send_email` binding must be configured in `wrangler.toml` with the destination address matching `NOTIFY_EMAIL`.
 
 ## 8. Cloudflare Worker
 
