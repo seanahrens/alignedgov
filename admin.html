@@ -82,7 +82,6 @@
       font-family: var(--font-sans);
       width: 100%;
       max-width: 240px;
-      margin-bottom: 0.75rem;
     }
     .admin-key-input:focus {
       border-color: var(--color-primary);
@@ -170,7 +169,7 @@
             <div class="admin-item-desc">Generates the monthly email with new links and saves it as a draft on Kit. You can preview and send a test from Kit's UI.</div>
           </div>
           <div style="display: flex; align-items: center; gap: 0.75rem;">
-            <input type="password" class="admin-key-input" id="admin-key" placeholder="Admin key">
+            <input type="password" class="admin-key-input" id="admin-key" placeholder="Admin key" onkeydown="if(event.key==='Enter')createDraftDigest()">
             <button class="bust-btn" id="digest-btn" onclick="createDraftDigest()">Create Draft</button>
           </div>
           <div class="digest-result" id="digest-result"></div>
