@@ -319,7 +319,7 @@
       text-transform: uppercase;
       letter-spacing: 0.05em;
       text-align: center;
-      margin-top: 2rem;
+      margin-top: 0.75rem;
       margin-bottom: 0.75rem;
       padding-bottom: 0.5rem;
       border-bottom: 1px solid var(--color-border-light);
@@ -441,7 +441,7 @@
     <div class="nav-inner">
       <a href="/" class="nav-brand" id="nav-brand"></a>
       <ul class="nav-links">
-        <li><a href="/" class="active">Resource List</a></li>
+        <li><a href="/" class="active">Home</a></li>
         <li><a href="/about.html">About</a></li>
         <li><a href="/submit.html">Submit a Resource</a></li>
       </ul>
@@ -461,7 +461,7 @@
           <button type="submit" class="btn-primary newsletter-btn">Subscribe</button>
         </form>
         <p class="newsletter-msg" id="newsletter-msg"></p>
-        <p class="newsletter-hint">Get monthly updates when new resources are added</p>
+        <p class="newsletter-hint">Get monthly updates when new resources and opportunities are added</p>
       </div>
     </div>
 
@@ -590,7 +590,7 @@
 
       var heading = document.createElement("div");
       heading.className = "deadlines-heading";
-      heading.textContent = "Upcoming Deadlines";
+      heading.textContent = "Opportunities \u2014 Upcoming Deadlines";
       section.appendChild(heading);
 
       items.forEach(function(item) {
