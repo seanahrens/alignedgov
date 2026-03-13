@@ -65,7 +65,7 @@ function handleCors(request, response) {
   }
 
   headers.set("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
-  headers.set("Access-Control-Allow-Headers", "Content-Type");
+  headers.set("Access-Control-Allow-Headers", "Content-Type, X-Admin-Key");
   headers.set("Access-Control-Max-Age", "86400");
 
   return new Response(response.body, {
