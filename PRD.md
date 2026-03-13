@@ -1,6 +1,6 @@
 # AI×Democracy.FYI — Product Requirements Document
 
-**Version:** 3.0
+**Version:** 4.0
 **Date:** March 12, 2026
 **Author:** Sean + Claude
 **Status:** Active
@@ -38,6 +38,7 @@ A publicly accessible ecosystem map where a community of rotating editors curate
 | Frontend Hosting | Cloudflare Pages | Free (unlimited requests) |
 | CDN / DNS / Domain | Cloudflare | Free (domain cost ~$10/yr) |
 | Public Submissions | Google Forms | Free |
+| Newsletter / Email | Kit (ConvertKit) | Free tier (up to 10k subscribers) |
 
 ### 4.2 Caching Strategy
 
@@ -168,16 +169,80 @@ Value:  {
 
 Merged dataset cache key: `merged_dataset_v1` (24hr TTL)
 
-## 7. Cloudflare Worker
+Newsletter link tracking keys:
+```
+Key:    newsletter:link:{sha256(url).slice(0,16)}
+Value:  { "url": string, "first_seen": ISO8601 string }
+```
 
-### 7.1 Endpoints
+Last send timestamp: `newsletter:last_send` (ISO8601 string, updated only by the cron handler after a successful broadcast send)
+
+## 7. Newsletter System
+
+### 7.1 Overview
+
+Visitors can subscribe to a monthly email digest via a signup form on the homepage. Emails are managed through Kit (ConvertKit) using their free tier. The system supports double opt-in — subscribers must confirm via a Kit confirmation email before receiving broadcasts.
+
+### 7.2 Signup Flow
+
+1. Visitor enters email in the homepage signup form
+2. Frontend POSTs to Worker endpoint `POST /api/subscribe` with `{ email }`
+3. Worker creates subscriber on Kit as `state: "inactive"` via `POST /v4/subscribers`
+4. Worker adds subscriber to a Kit Form via `POST /v4/forms/{KIT_FORM_ID}/subscribers`
+5. Kit automatically sends a double opt-in confirmation email
+6. Subscriber clicks confirmation link → status becomes "active" on Kit
+7. Frontend shows inline success/error message (no Kit-branded UI on the site)
+
+### 7.3 Monthly Digest (Cron)
+
+A Cloudflare Worker Cron Trigger fires on the 1st of each month at 9 AM UTC (`0 9 1 * *`).
+
+The digest includes two sections:
+- **Opportunities — Upcoming Deadlines:** All deadlines not more than 7 days past (same filter as homepage), sorted ascending by date. Title/description sourced from sheet overrides first, then OG metadata from KV.
+- **New Resources:** Links whose `first_seen` timestamp in KV is after the `newsletter:last_send` timestamp. Title/description sourced from sheet overrides first, then OG metadata from KV.
+
+The email is only sent if there is at least one deadline OR one new link. After a successful send, `newsletter:last_send` is updated in KV.
+
+**Subject line logic:**
+
+| New Resources? | Upcoming Deadlines? | Subject Line |
+|---|---|---|
+| Yes | Yes | New Resources & Upcoming Deadlines |
+| Yes | No | What's new this month? |
+| No | Yes | Upcoming Deadlines |
+| No | No | *(no email sent)* |
+
+### 7.4 Link First-Seen Tracking
+
+When the Worker fetches and merges links (on cache miss), it checks each link URL against KV. For any link not previously seen, it stores a `newsletter:link:{hash}` entry with the current timestamp. This runs as part of the existing cache-refresh flow via `waitUntil()`.
+
+### 7.5 Draft Digest (Admin)
+
+The admin page has a "Create Draft Digest" button that generates the same digest content but creates a Kit broadcast draft (no `send_at`). This allows previewing and sending test emails from Kit's UI without affecting subscribers or updating `newsletter:last_send`.
+
+Protected by an admin key sent via `X-Admin-Key` header, validated against the `ADMIN_KEY` Worker secret.
+
+### 7.6 Kit Configuration
+
+| Item | Details |
+|---|---|
+| Kit Form ID | Stored as Worker secret `KIT_FORM_ID` |
+| Kit API Key | Stored as Worker secret `KIT_API_KEY` |
+| Admin Key | Stored as Worker secret `ADMIN_KEY` |
+| Kit Dashboard (drafts) | https://app.kit.com/campaigns?status=draft |
+
+## 8. Cloudflare Worker
+
+### 8.1 Endpoints
 
 - `GET /api/links` — Returns `{ links, editors, orgs, deadlines, config }` as JSON.
 - `GET /bust` — Deletes the merged KV dataset entry, forcing full re-fetch on next visit. No auth required.
+- `POST /api/subscribe` — Subscribes an email to the newsletter via Kit (double opt-in). Body: `{ email }`.
+- `POST /api/draft-digest` — Creates a draft broadcast on Kit for preview. Requires `X-Admin-Key` header.
 
-**CORS:** Allows *.pages.dev, localhost, alignedgov.org, www.alignedgov.org, aixdemocracy.fyi, www.aixdemocracy.fyi
+**CORS:** Allows *.pages.dev, localhost, alignedgov.org, www.alignedgov.org, aixdemocracy.fyi, www.aixdemocracy.fyi. `X-Admin-Key` included in `Access-Control-Allow-Headers`.
 
-### 7.2 Worker Responsibilities
+### 8.2 Worker Responsibilities
 
 - Fetch published CSV URLs (Approved Links, Editors, Orgs, Config, Deadlines) from Google Sheets
 - Parse CSVs with RFC 4180 parser handling quoted fields with embedded newlines
@@ -190,7 +255,7 @@ Merged dataset cache key: `merged_dataset_v1` (24hr TTL)
 - Merge Sheet rows + OG enrichment, sort by power desc / row_id asc
 - Write merged dataset to KV with 24hr TTL
 
-### 7.3 Scraper Behavior
+### 8.3 Scraper Behavior
 
 - Fetch target URL with browser-like User-Agent (`AlignedGovBot/1.0`)
 - Parse `<meta>` tags for og:title, og:description, og:image, og:site_name
@@ -201,7 +266,11 @@ Merged dataset cache key: `merged_dataset_v1` (24hr TTL)
 - 5-second fetch timeout per URL
 - Max 2 redirects
 
-### 7.4 wrangler.toml Environment Variables
+### 8.4 Cron Trigger
+
+`0 9 1 * *` — 1st of each month at 9 AM UTC. Calls `sendMonthlyDigest()` which generates and sends the digest broadcast via Kit API.
+
+### 8.5 wrangler.toml Environment Variables
 
 ```toml
 LINKS_CSV_URL     = "...pub?gid=1419865336&single=true&output=csv"
@@ -211,15 +280,15 @@ CONFIG_CSV_URL    = "...pub?gid=1010322382&single=true&output=csv"
 DEADLINES_CSV_URL = "...pub?gid=950777082&single=true&output=csv"
 ```
 
-## 8. Frontend
+## 9. Frontend
 
-### 8.1 Site Identity
+### 9.1 Site Identity
 
 - **Domain:** aixdemocracy.fyi
 - **Brand name, heading, subheading, description, footer:** All pulled dynamically from Config sheet
 - **Page titles:** Set dynamically via JS from config (e.g. "About — AI×Democracy.FYI")
 
-### 8.2 File Structure
+### 9.2 File Structure
 
 Static files deployed to Cloudflare Pages from GitHub repo. Auto-deploys on git push (~30 seconds).
 
@@ -235,13 +304,14 @@ worker.js       — Cloudflare Worker (deployed separately via Wrangler)
 wrangler.toml   — Worker configuration
 ```
 
-### 8.3 Pages
+### 9.3 Pages
 
 **/ — Home (Resource List)**
 - Deadlines section at top — shows upcoming program deadlines within 1 week past, sorted ascending. Passed deadlines show "(passed)".
 - Org-centric view: orgs grouped by category, each org card shows org identity (favicon, name, description, category, people) + nested link list
 - "Independent Resources" section for links not matched to any org
 - "Editor Writings" section for links with category "editor"
+- Newsletter signup form in hero area — email input + subscribe button, posts to Worker `/api/subscribe`
 - Submit a Resource CTA button at bottom
 - Dynamic nav brand, footer, and document.title from config
 
@@ -252,7 +322,7 @@ wrangler.toml   — Worker configuration
 
 **/about — About Page**
 - Pill tab navigation: About, Team, Become an Editor
-- **About tab:** Mission, how it works, what belongs here, who it's for, origin story, get involved section with anti-spam email link (hello@aixdemocracy.fyi assembled via JS)
+- **About tab:** Mission, how it works, what belongs here, who it's for, get involved section with anti-spam email link (hello@aixdemocracy.fyi assembled via JS)
 - **Team tab:** Horizontal full-width editor cards (avatar, name, role, bio, link). "Become an editor →" link to switch tabs.
 - **Become an Editor tab:** Intro copy, callout, two always-visible detail sections (responsibilities + what good editorship looks like), Apply button → Google Form
 
@@ -266,31 +336,33 @@ wrangler.toml   — Worker configuration
 - CRM link (Google Sheet)
 - Submit Resource Form (View + Edit links)
 - Apply to be an Editor Form (View + Edit links)
+- Newsletter Digest section: admin key input + "Create Draft" button → creates draft on Kit. Shows link to view draft on Kit.
+- Kit Dashboard link (drafts view)
 
-### 8.4 Navigation
+### 9.4 Navigation
 
 Shared top nav across all pages:
 - Nav brand (site title from config, links to /)
-- Resource List (/)
+- Home (/)
 - About (/about.html)
 - Submit a Resource (/submit.html)
 - Active page highlighted
 
-### 8.5 OG Metadata
+### 9.5 OG Metadata
 
 All pages include Open Graph and Twitter Card meta tags:
 - og:title, og:description, og:image, og:url, og:site_name
 - twitter:card (summary_large_image)
 - og:image points to `https://alignedgov.pages.dev/og-image.png`
 
-### 8.6 Dynamic Content from Config
+### 9.6 Dynamic Content from Config
 
 All pages fetch `/api/links` on load to populate:
 - Nav brand text (from config.title)
 - Page title (from config.title)
 - Footer text (from config.footer)
 
-### 8.7 Design Principles
+### 9.7 Design Principles
 
 - Clean, editorial aesthetic appropriate for a governance/policy ecosystem map
 - Shared styles.css — global design changes in one file
@@ -298,7 +370,7 @@ All pages fetch `/api/links` on load to populate:
 - Accessible: semantic HTML, sufficient color contrast
 - Power score is internal only — never displayed to public visitors
 
-## 9. Access & Permissions
+## 10. Access & Permissions
 
 | Role | Access Method | Capabilities |
 |---|---|---|
@@ -309,7 +381,7 @@ All pages fetch `/api/links` on load to populate:
 | Admin | /admin page (unlisted, no auth) | Bust cache, access CRM and forms |
 | Developer | GitHub + Cloudflare Pages | Edit frontend design and Worker logic |
 
-## 10. Cost Summary
+## 11. Cost Summary
 
 | Service | Monthly Cost | Notes |
 |---|---|---|
@@ -320,9 +392,10 @@ All pages fetch `/api/links` on load to populate:
 | Cloudflare KV | $0 | 100k reads, 1k writes/day free |
 | Gravatar | $0 | Photo hosting via email hash |
 | Domain (aixdemocracy.fyi) | ~$0.83/mo | Amortized annual registration |
+| Kit (ConvertKit) | $0 | Free up to 10k subscribers |
 | **Total** | **~$1/mo** | Domain cost only |
 
-## 11. Credentials & Values Reference
+## 12. Credentials & Values Reference
 
 | Variable | Value |
 |---|---|
@@ -336,12 +409,15 @@ All pages fetch `/api/links` on load to populate:
 | CRM Spreadsheet | `https://docs.google.com/spreadsheets/d/1jDfHpPcuQeW78y5V6rBJALCNKd62AJPrKnUdI8JFytg/edit` |
 | Submit Form (edit) | `https://docs.google.com/forms/d/1Eg7Ww3n7xwmkef8cKq-WUij92ucKwERCsiFhmaxTMWo/edit` |
 | Apply Form (edit) | `https://docs.google.com/forms/d/1kSHsBTI6jeAP1-wtfNvQiSzZsbhB19GrDoeXl-R7dj0/edit` |
+| KIT_API_KEY | Worker secret (set via `wrangler secret put KIT_API_KEY`) |
+| KIT_FORM_ID | Worker secret (`9201052`) |
+| ADMIN_KEY | Worker secret (for draft-digest endpoint auth) |
 | KV_NAMESPACE_ID | `6b9f010f78674b9987d69ea2add08a03` |
 | WORKER_URL | `https://alignedgov-worker.seanahrens.workers.dev` |
 | PAGES_DEV_URL | `https://alignedgov.pages.dev` |
 | Production URL | `https://aixdemocracy.fyi` |
 
-## 12. Ongoing Human + AI Workflow
+## 13. Ongoing Human + AI Workflow
 
 ### Content Updates (zero code — Sean or any editor)
 - Add a link: open Approved Links tab, add row with url, category, power. Appears on site within 24 hours.
@@ -358,9 +434,8 @@ Open Claude Code in the repo folder. Describe what you want in plain English. Cl
 - **Frontend:** `git push` → Cloudflare Pages auto-deploys (~30 seconds)
 - **Worker:** `wrangler deploy` from the repo directory
 
-## 13. Future Considerations
+## 14. Future Considerations
 
-- RSS feed for subscribers
 - date_added column to display when a link was added
 - Pagination or infinite scroll if collection grows beyond ~200 links
 - In-page submission form (Cloudflare Worker + Google service account)
