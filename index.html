@@ -57,7 +57,7 @@
     </div>
 
     <!-- Deadlines -->
-    <div class="deadlines-section" id="deadlines-section" style="display: none;"></div>
+    <div class="deadlines-section hidden" id="deadlines-section"></div>
 
     <!-- Loading State -->
     <div class="loading" id="loading">
@@ -66,7 +66,7 @@
     </div>
 
     <!-- Org List -->
-    <div class="org-list" id="org-list" style="display: none;"></div>
+    <div class="org-list hidden" id="org-list"></div>
 
     <!-- Submit CTA -->
     <div style="text-align: center; margin: 3rem 0 1rem;">
@@ -177,7 +177,7 @@
       items.sort(function(a, b) { return a.date - b.date; });
 
       var section = document.getElementById("deadlines-section");
-      section.style.display = "block";
+      section.classList.remove("hidden");
 
       var heading = document.createElement("div");
       heading.className = "deadlines-heading";
@@ -234,7 +234,7 @@
       var container = document.getElementById("org-list");
       var loading = document.getElementById("loading");
       loading.style.display = "none";
-      container.style.display = "flex";
+      container.classList.remove("hidden");
 
       // Build a map of org URL → links
       // Normalize URLs for matching (trim trailing slashes)
