@@ -880,10 +880,13 @@ async function generateDigest(env) {
   const siteName = config.title || "AI×Democracy.FYI";
 
   // ─── Build subject line ───
-  const parts = [];
-  if (deadlines.length > 0) parts.push(`${deadlines.length} Deadline${deadlines.length === 1 ? "" : "s"}`);
-  if (newLinks.length > 0) parts.push(`${newLinks.length} New Resource${newLinks.length === 1 ? "" : "s"}`);
-  const subject = `${siteName} — ${parts.join(" + ") || "Monthly Update"}`;
+  const hasLinks = newLinks.length > 0;
+  const hasDeadlines = deadlines.length > 0;
+  let subject;
+  if (hasLinks && hasDeadlines) subject = "New Resources & Upcoming Deadlines";
+  else if (hasLinks) subject = "What's new this month?";
+  else if (hasDeadlines) subject = "Upcoming Deadlines";
+  else subject = "Monthly Update";
 
   // ─── Build HTML email ───
   const deadlinesHtml = deadlines.length > 0 ? `
