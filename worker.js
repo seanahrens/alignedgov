@@ -911,7 +911,6 @@ async function generateDigest(env) {
     <tr>
       <td style="padding: 10px 0; border-bottom: 1px solid #e2e4e9;">
         <a href="${escapeHtml(link.url)}" style="color: #2d5be3; font-weight: 600; font-size: 15px; text-decoration: none;">${escapeHtml(link.title)}</a>
-        <span style="display: inline-block; padding: 2px 8px; border-radius: 50px; background: #eef0f5; color: #555770; font-size: 11px; font-weight: 600; text-transform: uppercase; margin-left: 8px;">${escapeHtml(link.category)}</span>
         ${link.description ? `<div style="color: #555770; font-size: 13px; margin-top: 3px; line-height: 1.4;">${escapeHtml(link.description)}</div>` : ""}
       </td>
     </tr>`).join("")}
