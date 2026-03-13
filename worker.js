@@ -752,7 +752,23 @@ async function handleSubscribe(request, env) {
   }
 
   try {
-    const resp = await fetch("https://api.kit.com/v4/subscribers", {
+    // Step 1: Create subscriber as inactive
+    const createResp = await fetch("https://api.kit.com/v4/subscribers", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "X-Kit-Api-Key": env.KIT_API_KEY,
+      },
+      body: JSON.stringify({ email_address: email, state: "inactive" }),
+    });
+
+    if (!createResp.ok && createResp.status !== 200 && createResp.status !== 202) {
+      const data = await createResp.json().catch(() => ({}));
+      return jsonResponse({ error: data.message || "Subscription failed" }, createResp.status);
+    }
+
+    // Step 2: Add to form (triggers double opt-in confirmation email)
+    const formResp = await fetch(`https://api.kit.com/v4/forms/${env.KIT_FORM_ID}/subscribers`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -761,12 +777,12 @@ async function handleSubscribe(request, env) {
       body: JSON.stringify({ email_address: email }),
     });
 
-    if (resp.ok || resp.status === 202) {
+    if (formResp.ok || formResp.status === 201) {
       return jsonResponse({ success: true });
     }
 
-    const data = await resp.json().catch(() => ({}));
-    return jsonResponse({ error: data.message || "Subscription failed" }, resp.status);
+    const data = await formResp.json().catch(() => ({}));
+    return jsonResponse({ error: data.message || "Subscription failed" }, formResp.status);
   } catch (err) {
     return jsonResponse({ error: "Service temporarily unavailable" }, 502);
   }
