@@ -991,7 +991,7 @@ async function sendMonthlyDigest(env) {
         ``,
         `<p>A new monthly digest draft has been created on Kit with <strong>${digest.deadlines.length}</strong> deadline(s) and <strong>${digest.newLinks.length}</strong> new resource(s).</p>`,
         `<p>Subject: <em>${escapeHtml(digest.subject)}</em></p>`,
-        `<p><a href="${kitUrl}">Review and send the draft on Kit</a></p>`,
+        `<p><a href="https://aixdemocracy.fyi/admin.html">Go to Admin Page</a> · <a href="${kitUrl}">Review draft on Kit</a></p>`,
       ].join("\r\n");
 
       const { EmailMessage } = await import("cloudflare:email");
