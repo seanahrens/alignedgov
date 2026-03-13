@@ -568,6 +568,8 @@ img {
   .nav-inner {
     padding: 0 1rem;
     flex-wrap: wrap;
+    height: auto;
+    min-height: 60px;
   }
 
   .nav-toggle {
@@ -577,8 +579,8 @@ img {
   .nav-links {
     display: none;
     flex-direction: column;
-    width: 100%;
-    padding: 0.5rem 0 0.75rem;
+    flex-basis: 100%;
+    padding: 0 0 0.75rem;
     gap: 0.15rem;
   }
 
