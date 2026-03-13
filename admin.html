@@ -180,7 +180,7 @@
             <div class="admin-item-label">Kit Dashboard</div>
             <div class="admin-item-desc">Manage subscribers and broadcasts</div>
           </div>
-          <a href="https://app.kit.com/broadcasts" target="_blank" rel="noopener noreferrer">Open &rarr;</a>
+          <a href="https://app.kit.com/campaigns?status=draft" target="_blank" rel="noopener noreferrer">Open &rarr;</a>
         </div>
       </div>
 
@@ -226,15 +226,15 @@
           if (res.data.error === "Unauthorized") {
             result.textContent = "Invalid admin key";
             result.className = "digest-result error";
-          } else if (res.data.linkCount === 0) {
-            result.textContent = "No new links since last send.";
-            result.className = "digest-result";
           } else if (res.data.success) {
-            result.innerHTML = "Draft created with " + res.data.linkCount + " links. " +
-              '<a href="' + res.data.kitUrl + '" target="_blank" rel="noopener noreferrer">View on Kit &rarr;</a>';
+            result.innerHTML = "Draft created on Kit. " +
+              '<a href="' + res.data.kitUrl + '" target="_blank" rel="noopener noreferrer">View draft &rarr;</a>';
             result.className = "digest-result";
+          } else if (res.data.error) {
+            result.textContent = res.data.error;
+            result.className = "digest-result error";
           } else {
-            result.textContent = res.data.error || "Something went wrong";
+            result.textContent = "Failed to create draft — unknown error";
             result.className = "digest-result error";
           }
           btn.disabled = false;

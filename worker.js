@@ -792,16 +792,38 @@ async function handleSubscribe(request, env) {
 
 // ─── Monthly Digest ─────────────────────────────────────────────────────────
 
-// Shared: generate digest content (subject, html, newLinks) without sending
+// Parse a deadline date string (matches frontend logic)
+function parseDeadlineDate(str) {
+  const MONTH_MAP = { jan:0, feb:1, mar:2, apr:3, may:4, jun:5, jul:6, aug:7, sep:8, oct:9, nov:10, dec:11 };
+  const s = (str || "").trim();
+  // ISO format
+  const iso = new Date(s + "T23:59:59");
+  if (!isNaN(iso.getTime()) && /^\d{4}-\d{2}-\d{2}$/.test(s)) return iso;
+  // "Mon DD" or "Mon DD, YYYY"
+  const m = s.match(/^([A-Za-z]+)\s+(\d{1,2})(?:\s*,?\s*(\d{4}))?$/);
+  if (!m) return null;
+  const monthIdx = MONTH_MAP[m[1].toLowerCase().slice(0, 3)];
+  if (monthIdx === undefined) return null;
+  const day = parseInt(m[2], 10);
+  const year = m[3] ? parseInt(m[3], 10) : new Date().getFullYear();
+  const date = new Date(year, monthIdx, day, 23, 59, 59);
+  if (!m[3] && date < new Date(Date.now() - 180 * 24 * 60 * 60 * 1000)) {
+    date.setFullYear(date.getFullYear() + 1);
+  }
+  return date;
+}
+
+// Shared: generate digest content (subject, html, newLinks, deadlines) without sending
 async function generateDigest(env) {
   const LAST_SEND_KEY = "newsletter:last_send";
 
   const lastSendRaw = await env.KV.get(LAST_SEND_KEY);
   const lastSend = lastSendRaw ? new Date(lastSendRaw) : new Date(0);
 
-  const [linksCSV, configCSV] = await Promise.all([
+  const [linksCSV, configCSV, deadlinesCSV] = await Promise.all([
     fetchText(env.LINKS_CSV_URL),
     fetchText(env.CONFIG_CSV_URL).catch(() => ""),
+    fetchText(env.DEADLINES_CSV_URL).catch(() => ""),
   ]);
   const allLinks = parseCSV(linksCSV);
   const configRows = parseCSV(configCSV);
@@ -812,6 +834,24 @@ async function generateDigest(env) {
     if (key) config[key] = value;
   }
 
+  // ─── Deadlines (not passed by more than 7 days) ───
+  const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+  const now = new Date();
+  const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+  const deadlineRows = parseCSV(deadlinesCSV);
+  const deadlines = [];
+  for (const d of deadlineRows) {
+    const date = parseDeadlineDate(d.deadline);
+    if (!date || date < sevenDaysAgo) continue;
+    const url = (d.url || "").trim();
+    const title = (d.title || "").trim() || url;
+    const description = (d.description || "").trim();
+    const label = MONTHS[date.getMonth()] + " " + date.getDate();
+    deadlines.push({ url, title, description, date, label });
+  }
+  deadlines.sort((a, b) => a.date - b.date);
+
+  // ─── New links ───
   const newLinks = [];
   for (const row of allLinks) {
     const url = (row.url || "").trim();
@@ -838,41 +878,65 @@ async function generateDigest(env) {
   }
 
   const siteName = config.title || "AI×Democracy.FYI";
-  const subject = `${siteName} — ${newLinks.length} New Resource${newLinks.length === 1 ? "" : "s"} This Month`;
 
-  const linkRows = newLinks.map((link) => `
+  // ─── Build subject line ───
+  const parts = [];
+  if (deadlines.length > 0) parts.push(`${deadlines.length} Deadline${deadlines.length === 1 ? "" : "s"}`);
+  if (newLinks.length > 0) parts.push(`${newLinks.length} New Resource${newLinks.length === 1 ? "" : "s"}`);
+  const subject = `${siteName} — ${parts.join(" + ") || "Monthly Update"}`;
+
+  // ─── Build HTML email ───
+  const deadlinesHtml = deadlines.length > 0 ? `
+  <h2 style="font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: #1a1a2e; margin: 0 0 12px 0; padding-bottom: 8px; border-bottom: 2px solid #2d5be3;">Opportunities &mdash; Upcoming Deadlines</h2>
+  <table style="width: 100%; border-collapse: collapse; margin-bottom: 28px;">
+    ${deadlines.map((d) => `
     <tr>
-      <td style="padding: 12px 0; border-bottom: 1px solid #e2e4e9;">
+      <td style="padding: 10px 0; border-bottom: 1px solid #e2e4e9; vertical-align: top;">
+        <a href="${escapeHtml(d.url)}" style="color: #2d5be3; font-weight: 600; font-size: 15px; text-decoration: none;">${escapeHtml(d.title)}</a>
+        ${d.description ? `<div style="color: #555770; font-size: 13px; margin-top: 3px; line-height: 1.4;">${escapeHtml(d.description)}</div>` : ""}
+      </td>
+      <td style="padding: 10px 0 10px 12px; border-bottom: 1px solid #e2e4e9; vertical-align: top; white-space: nowrap; text-align: right;">
+        <span style="font-size: 13px; font-weight: 600; color: #2d5be3;">${escapeHtml(d.label)}</span>
+      </td>
+    </tr>`).join("")}
+  </table>` : "";
+
+  const newLinksHtml = newLinks.length > 0 ? `
+  <h2 style="font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: #1a1a2e; margin: 0 0 12px 0; padding-bottom: 8px; border-bottom: 2px solid #2d5be3;">New Resources</h2>
+  <table style="width: 100%; border-collapse: collapse; margin-bottom: 28px;">
+    ${newLinks.map((link) => `
+    <tr>
+      <td style="padding: 10px 0; border-bottom: 1px solid #e2e4e9;">
         <a href="${escapeHtml(link.url)}" style="color: #2d5be3; font-weight: 600; font-size: 15px; text-decoration: none;">${escapeHtml(link.title)}</a>
         <span style="display: inline-block; padding: 2px 8px; border-radius: 50px; background: #eef0f5; color: #555770; font-size: 11px; font-weight: 600; text-transform: uppercase; margin-left: 8px;">${escapeHtml(link.category)}</span>
-        ${link.description ? `<div style="color: #555770; font-size: 13px; margin-top: 4px; line-height: 1.4;">${escapeHtml(link.description)}</div>` : ""}
+        ${link.description ? `<div style="color: #555770; font-size: 13px; margin-top: 3px; line-height: 1.4;">${escapeHtml(link.description)}</div>` : ""}
       </td>
-    </tr>`).join("");
+    </tr>`).join("")}
+  </table>` : "";
 
   const html = `
 <div style="max-width: 600px; margin: 0 auto; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; color: #1a1a2e;">
   <h1 style="font-size: 22px; margin-bottom: 4px;">${escapeHtml(siteName)}</h1>
-  <p style="color: #8888a0; font-size: 14px; margin-bottom: 24px;">Monthly Digest — ${new Date().toLocaleDateString("en-US", { month: "long", year: "numeric" })}</p>
-  <p style="font-size: 15px; color: #555770; margin-bottom: 20px;">
-    ${newLinks.length} new resource${newLinks.length === 1 ? " was" : "s were"} added this month:
-  </p>
-  <table style="width: 100%; border-collapse: collapse;">
-    ${linkRows}
-  </table>
-  <p style="margin-top: 24px; font-size: 14px; color: #8888a0; text-align: center;">
+  <p style="color: #8888a0; font-size: 14px; margin-bottom: 24px;">Monthly Digest &mdash; ${new Date().toLocaleDateString("en-US", { month: "long", year: "numeric" })}</p>
+  ${deadlinesHtml}
+  ${newLinksHtml}
+  <p style="margin-top: 8px; font-size: 14px; color: #8888a0; text-align: center;">
     <a href="https://aixdemocracy.fyi" style="color: #2d5be3;">Visit ${escapeHtml(siteName)}</a>
   </p>
 </div>`;
 
-  const previewText = `${newLinks.length} new resource${newLinks.length === 1 ? "" : "s"} added to ${siteName}`;
+  const previewParts = [];
+  if (deadlines.length > 0) previewParts.push(`${deadlines.length} upcoming deadline${deadlines.length === 1 ? "" : "s"}`);
+  if (newLinks.length > 0) previewParts.push(`${newLinks.length} new resource${newLinks.length === 1 ? "" : "s"}`);
+  const previewText = previewParts.join(" and ") + ` on ${siteName}`;
 
-  return { subject, html, previewText, newLinks, siteName };
+  return { subject, html, previewText, newLinks, deadlines, siteName };
 }
 
 // Cron handler: generate + send broadcast
 async function sendMonthlyDigest(env) {
   const digest = await generateDigest(env);
-  if (digest.newLinks.length === 0) return;
+  if (digest.newLinks.length === 0 && digest.deadlines.length === 0) return;
 
   const sendAt = new Date(Date.now() + 60 * 1000).toISOString();
 
@@ -885,7 +949,7 @@ async function sendMonthlyDigest(env) {
     body: JSON.stringify({
       content: digest.html,
       subject: digest.subject,
-      description: `Monthly digest — ${digest.newLinks.length} new resources`,
+      description: `Monthly digest — ${digest.deadlines.length} deadlines, ${digest.newLinks.length} new resources`,
       public: false,
       published_at: new Date().toISOString(),
       preview_text: digest.previewText,
@@ -908,8 +972,8 @@ async function handleDraftDigest(request, env) {
   }
 
   const digest = await generateDigest(env);
-  if (digest.newLinks.length === 0) {
-    return jsonResponse({ error: "No new links since last send", linkCount: 0 }, 200);
+  if (digest.newLinks.length === 0 && digest.deadlines.length === 0) {
+    return jsonResponse({ error: "Nothing to send — no upcoming deadlines and no new links since last send", linkCount: 0 }, 200);
   }
 
   // Create as draft (send_at: null)
@@ -922,7 +986,7 @@ async function handleDraftDigest(request, env) {
     body: JSON.stringify({
       content: digest.html,
       subject: digest.subject,
-      description: `[DRAFT] Monthly digest — ${digest.newLinks.length} new resources`,
+      description: `[DRAFT] Monthly digest — ${digest.deadlines.length} deadlines, ${digest.newLinks.length} new resources`,
       public: false,
       preview_text: digest.previewText,
     }),
