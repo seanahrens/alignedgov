@@ -1008,7 +1008,7 @@ async function handleDraftDigest(request, env) {
     linkCount: digest.newLinks.length,
     subject: digest.subject,
     broadcastId: broadcastId,
-    kitUrl: broadcastId ? `https://app.kit.com/broadcasts/${broadcastId}` : null,
+    kitUrl: broadcastId ? `https://app.kit.com/campaigns/${broadcastId}/draft` : null,
   });
 }
 
