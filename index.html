@@ -25,6 +25,65 @@
 
   <link rel="stylesheet" href="styles.css">
   <style>
+    /* ─── Newsletter Signup ──────────────────────────────────────────── */
+    .newsletter-signup {
+      max-width: 440px;
+      margin: 1.25rem auto 0;
+    }
+
+    .newsletter-form {
+      display: flex;
+      gap: 0.5rem;
+    }
+
+    .newsletter-form input[type="email"] {
+      flex: 1;
+      padding: 0.65rem 1rem;
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-sm);
+      font-size: 0.95rem;
+      font-family: var(--font-sans);
+      background: var(--color-surface);
+      color: var(--color-text);
+      outline: none;
+      transition: border-color 0.15s;
+    }
+
+    .newsletter-form input[type="email"]:focus {
+      border-color: var(--color-primary);
+    }
+
+    .newsletter-btn {
+      flex-shrink: 0;
+      padding: 0.65rem 1.25rem;
+      font-size: 0.9rem;
+    }
+
+    .newsletter-hint {
+      font-size: 0.78rem;
+      color: var(--color-text-muted);
+      margin-top: 0.5rem;
+      text-align: center;
+    }
+
+    .newsletter-msg {
+      font-size: 0.85rem;
+      margin-top: 0.5rem;
+      text-align: center;
+      min-height: 1.25em;
+    }
+
+    .newsletter-msg.success { color: #16a34a; }
+    .newsletter-msg.error { color: #dc2626; }
+
+    .newsletter-msg:empty { display: none; }
+
+    @media (max-width: 480px) {
+      .newsletter-form {
+        flex-direction: column;
+      }
+    }
+
     /* ─── Org Card Layout ─────────────────────────────────────────────── */
     .org-list {
       display: flex;
@@ -393,6 +452,16 @@
       <h1 id="site-heading"></h1>
       <p class="subheading" id="site-subheading"></p>
       <p class="description" id="site-description"></p>
+
+      <!-- Newsletter Signup -->
+      <div class="newsletter-signup">
+        <form id="newsletter-form" class="newsletter-form">
+          <input type="email" id="newsletter-email" placeholder="your@email.com" required autocomplete="email" aria-label="Email address">
+          <button type="submit" class="btn-primary newsletter-btn">Subscribe</button>
+        </form>
+        <p class="newsletter-msg" id="newsletter-msg"></p>
+        <p class="newsletter-hint">Get monthly updates when new resources are added</p>
+      </div>
     </div>
 
     <!-- Deadlines -->
@@ -808,6 +877,47 @@
       a.appendChild(text);
       return a;
     }
+
+    // ─── Newsletter signup ──────────────────────────────────────────
+    (function() {
+      var form = document.getElementById("newsletter-form");
+      var msg = document.getElementById("newsletter-msg");
+
+      form.addEventListener("submit", async function(e) {
+        e.preventDefault();
+        var email = document.getElementById("newsletter-email").value.trim();
+        if (!email) return;
+
+        var btn = form.querySelector("button");
+        btn.disabled = true;
+        btn.textContent = "Subscribing...";
+        msg.textContent = "";
+        msg.className = "newsletter-msg";
+
+        try {
+          var resp = await fetch(WORKER_URL + "/api/subscribe", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ email: email }),
+          });
+          var data = await resp.json();
+          if (resp.ok) {
+            msg.textContent = "You're subscribed! Check your email to confirm.";
+            msg.className = "newsletter-msg success";
+            form.reset();
+          } else {
+            msg.textContent = data.error || "Something went wrong. Please try again.";
+            msg.className = "newsletter-msg error";
+          }
+        } catch (err) {
+          msg.textContent = "Network error. Please try again.";
+          msg.className = "newsletter-msg error";
+        }
+
+        btn.disabled = false;
+        btn.textContent = "Subscribe";
+      });
+    })();
 
     init();
   </script>

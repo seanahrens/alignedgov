@@ -30,6 +30,8 @@ export default {
 
     if (url.pathname === "/api/links") {
       response = await handleLinks(env, ctx);
+    } else if (url.pathname === "/api/subscribe" && request.method === "POST") {
+      response = await handleSubscribe(request, env);
     } else if (url.pathname === "/api/purge" || url.pathname === "/bust") {
       response = await handlePurge(url, env);
     } else {
@@ -37,6 +39,10 @@ export default {
     }
 
     return handleCors(request, response);
+  },
+
+  async scheduled(event, env, ctx) {
+    ctx.waitUntil(sendMonthlyDigest(env));
   },
 };
 
@@ -56,7 +62,7 @@ function handleCors(request, response) {
     headers.set("Access-Control-Allow-Origin", origin);
   }
 
-  headers.set("Access-Control-Allow-Methods", "GET, OPTIONS");
+  headers.set("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
   headers.set("Access-Control-Allow-Headers", "Content-Type");
   headers.set("Access-Control-Max-Age", "86400");
 
@@ -320,6 +326,25 @@ async function handleLinks(env, ctx) {
 
   if (deadlineScrapePromises.length > 0) {
     ctx.waitUntil(Promise.allSettled(deadlineScrapePromises));
+  }
+
+  // Track first-seen timestamps for newsletter digest
+  const trackPromises = [];
+  for (const link of processedLinks) {
+    const trackKey = "newsletter:link:" + (await hashUrl(link.url));
+    trackPromises.push(
+      env.KV.get(trackKey).then((existing) => {
+        if (!existing) {
+          return env.KV.put(trackKey, JSON.stringify({
+            url: link.url,
+            first_seen: new Date().toISOString(),
+          }));
+        }
+      })
+    );
+  }
+  if (trackPromises.length > 0) {
+    ctx.waitUntil(Promise.allSettled(trackPromises));
   }
 
   const dataset = {
@@ -704,8 +729,159 @@ async function fetchText(url) {
   return resp.text();
 }
 
-function jsonResponse(data) {
+function jsonResponse(data, status) {
   return new Response(JSON.stringify(data), {
+    status: status || 200,
     headers: { "Content-Type": "application/json" },
   });
+}
+
+// ─── POST /api/subscribe ────────────────────────────────────────────────────
+
+async function handleSubscribe(request, env) {
+  let body;
+  try {
+    body = await request.json();
+  } catch {
+    return jsonResponse({ error: "Invalid request body" }, 400);
+  }
+
+  const email = (body.email || "").trim();
+  if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    return jsonResponse({ error: "Please enter a valid email address" }, 422);
+  }
+
+  try {
+    const resp = await fetch("https://api.kit.com/v4/subscribers", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "X-Kit-Api-Key": env.KIT_API_KEY,
+      },
+      body: JSON.stringify({ email_address: email }),
+    });
+
+    if (resp.ok || resp.status === 202) {
+      return jsonResponse({ success: true });
+    }
+
+    const data = await resp.json().catch(() => ({}));
+    return jsonResponse({ error: data.message || "Subscription failed" }, resp.status);
+  } catch (err) {
+    return jsonResponse({ error: "Service temporarily unavailable" }, 502);
+  }
+}
+
+// ─── Monthly Digest (Cron) ──────────────────────────────────────────────────
+
+async function sendMonthlyDigest(env) {
+  const LAST_SEND_KEY = "newsletter:last_send";
+
+  // Get last send timestamp (or epoch if never sent)
+  const lastSendRaw = await env.KV.get(LAST_SEND_KEY);
+  const lastSend = lastSendRaw ? new Date(lastSendRaw) : new Date(0);
+
+  // Fetch the current dataset to get link metadata
+  const [linksCSV, configCSV] = await Promise.all([
+    fetchText(env.LINKS_CSV_URL),
+    fetchText(env.CONFIG_CSV_URL).catch(() => ""),
+  ]);
+  const allLinks = parseCSV(linksCSV);
+  const configRows = parseCSV(configCSV);
+  const config = {};
+  for (const row of configRows) {
+    const key = (row.key || "").trim();
+    const value = (row.value || "").trim();
+    if (key) config[key] = value;
+  }
+
+  // Find new links by checking newsletter tracking keys
+  const newLinks = [];
+  for (const row of allLinks) {
+    const url = (row.url || "").trim();
+    if (!url) continue;
+    if ((row.deleted_at || "").trim()) continue;
+
+    const trackKey = "newsletter:link:" + (await hashUrl(url));
+    const trackData = await env.KV.get(trackKey, "json");
+    if (!trackData) continue;
+
+    const firstSeen = new Date(trackData.first_seen);
+    if (firstSeen > lastSend) {
+      // Get enriched metadata from OG cache
+      const kvKey = await hashUrl(url);
+      const ogData = await env.KV.get(kvKey, "json");
+
+      const title = (row.title || "").trim() ||
+        (ogData && ogData.title) || url;
+      const description = (row.description || "").trim() ||
+        (ogData && ogData.description) || "";
+      const category = (row.category || "").trim() || "Uncategorized";
+
+      newLinks.push({ url, title, description, category });
+    }
+  }
+
+  if (newLinks.length === 0) return; // Nothing new, skip sending
+
+  const siteName = config.title || "AI×Democracy.FYI";
+  const subject = `${siteName} — ${newLinks.length} New Resource${newLinks.length === 1 ? "" : "s"} This Month`;
+
+  // Build HTML email
+  const linkRows = newLinks.map((link) => `
+    <tr>
+      <td style="padding: 12px 0; border-bottom: 1px solid #e2e4e9;">
+        <a href="${escapeHtml(link.url)}" style="color: #2d5be3; font-weight: 600; font-size: 15px; text-decoration: none;">${escapeHtml(link.title)}</a>
+        <span style="display: inline-block; padding: 2px 8px; border-radius: 50px; background: #eef0f5; color: #555770; font-size: 11px; font-weight: 600; text-transform: uppercase; margin-left: 8px;">${escapeHtml(link.category)}</span>
+        ${link.description ? `<div style="color: #555770; font-size: 13px; margin-top: 4px; line-height: 1.4;">${escapeHtml(link.description)}</div>` : ""}
+      </td>
+    </tr>`).join("");
+
+  const html = `
+<div style="max-width: 600px; margin: 0 auto; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; color: #1a1a2e;">
+  <h1 style="font-size: 22px; margin-bottom: 4px;">${escapeHtml(siteName)}</h1>
+  <p style="color: #8888a0; font-size: 14px; margin-bottom: 24px;">Monthly Digest — ${new Date().toLocaleDateString("en-US", { month: "long", year: "numeric" })}</p>
+  <p style="font-size: 15px; color: #555770; margin-bottom: 20px;">
+    ${newLinks.length} new resource${newLinks.length === 1 ? " was" : "s were"} added this month:
+  </p>
+  <table style="width: 100%; border-collapse: collapse;">
+    ${linkRows}
+  </table>
+  <p style="margin-top: 24px; font-size: 14px; color: #8888a0; text-align: center;">
+    <a href="https://aixdemocracy.fyi" style="color: #2d5be3;">Visit ${escapeHtml(siteName)}</a>
+  </p>
+</div>`;
+
+  // Send via Kit broadcast API — schedule 1 minute from now
+  const sendAt = new Date(Date.now() + 60 * 1000).toISOString();
+
+  const resp = await fetch("https://api.kit.com/v4/broadcasts", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "X-Kit-Api-Key": env.KIT_API_KEY,
+    },
+    body: JSON.stringify({
+      content: html,
+      subject: subject,
+      description: `Monthly digest — ${newLinks.length} new resources`,
+      public: false,
+      published_at: new Date().toISOString(),
+      preview_text: `${newLinks.length} new resource${newLinks.length === 1 ? "" : "s"} added to ${siteName}`,
+      send_at: sendAt,
+      subscriber_filter: [{ all: [{ type: "status", status: "active" }] }],
+    }),
+  });
+
+  if (resp.ok) {
+    await env.KV.put(LAST_SEND_KEY, new Date().toISOString());
+  }
+}
+
+function escapeHtml(str) {
+  return (str || "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
 }
