@@ -1,4 +1,4 @@
-// AlignedGov Cloudflare Worker
+// AI×Democracy.FYI Cloudflare Worker
 // Fetches link + editor data from Google Sheets, enriches with OG metadata,
 // caches in KV, and serves JSON API to the frontend.
 
@@ -984,9 +984,9 @@ async function sendMonthlyDigest(env) {
         : "https://app.kit.com/campaigns?status=draft";
 
       const rawEmail = [
-        `From: noreply@aixdemocracy.fyi`,
+        `From: =?utf-8?B?${btoa("AI\u00D7Democracy.FYI")}?= <hello@aixdemocracy.fyi>`,
         `To: ${env.NOTIFY_EMAIL}`,
-        `Subject: AlignedGov: Monthly digest draft ready for review`,
+        `Subject: =?utf-8?B?${btoa("AI\u00D7Democracy.FYI: Monthly digest draft ready for review")}?=`,
         `Content-Type: text/html; charset=utf-8`,
         ``,
         `<p>A new monthly digest draft has been created on Kit with <strong>${digest.deadlines.length}</strong> deadline(s) and <strong>${digest.newLinks.length}</strong> new resource(s).</p>`,
@@ -996,7 +996,7 @@ async function sendMonthlyDigest(env) {
 
       const { EmailMessage } = await import("cloudflare:email");
       const message = new EmailMessage(
-        "noreply@aixdemocracy.fyi",
+        "hello@aixdemocracy.fyi",
         env.NOTIFY_EMAIL,
         new TextEncoder().encode(rawEmail)
       );
