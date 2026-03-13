@@ -440,6 +440,9 @@
   <nav class="nav" role="navigation" aria-label="Main navigation">
     <div class="nav-inner">
       <a href="/" class="nav-brand" id="nav-brand"></a>
+      <button class="nav-toggle" aria-label="Toggle menu" aria-expanded="false" onclick="this.setAttribute('aria-expanded',this.getAttribute('aria-expanded')==='false'?'true':'false');this.nextElementSibling.classList.toggle('open')">
+        <span></span><span></span><span></span>
+      </button>
       <ul class="nav-links">
         <li><a href="/" class="active">Home</a></li>
         <li><a href="/about.html">About</a></li>

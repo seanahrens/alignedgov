@@ -984,7 +984,7 @@ async function sendMonthlyDigest(env) {
         : "https://app.kit.com/campaigns?status=draft";
 
       const rawEmail = [
-        `From: noreply@alignedgov.org`,
+        `From: noreply@aixdemocracy.fyi`,
         `To: ${env.NOTIFY_EMAIL}`,
         `Subject: AlignedGov: Monthly digest draft ready for review`,
         `Content-Type: text/html; charset=utf-8`,
@@ -996,7 +996,7 @@ async function sendMonthlyDigest(env) {
 
       const { EmailMessage } = await import("cloudflare:email");
       const message = new EmailMessage(
-        "noreply@alignedgov.org",
+        "noreply@aixdemocracy.fyi",
         env.NOTIFY_EMAIL,
         new TextEncoder().encode(rawEmail)
       );
