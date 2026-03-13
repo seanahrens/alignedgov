@@ -844,10 +844,22 @@ async function generateDigest(env) {
     const date = parseDeadlineDate(d.deadline);
     if (!date || date < sevenDaysAgo) continue;
     const url = (d.url || "").trim();
-    const title = (d.title || "").trim() || url;
-    const description = (d.description || "").trim();
+    if (!url) continue;
+
+    // Check sheet overrides first, then fall back to OG data from KV
+    let title = (d.title || "").trim() || null;
+    let description = (d.description || "").trim() || null;
+    if (!title || !description) {
+      const kvKey = await hashUrl(url);
+      const ogData = await env.KV.get(kvKey, "json");
+      if (ogData) {
+        if (!title) title = ogData.title || null;
+        if (!description) description = ogData.description || null;
+      }
+    }
+
     const label = MONTHS[date.getMonth()] + " " + date.getDate();
-    deadlines.push({ url, title, description, date, label });
+    deadlines.push({ url, title: title || url, description: description || "", date, label });
   }
   deadlines.sort((a, b) => a.date - b.date);
 
