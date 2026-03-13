@@ -114,7 +114,7 @@
     }
 
     a.org-identity:hover {
-      background: rgba(45, 91, 227, 0.06);
+      background: rgba(37, 99, 214, 0.09);
       text-decoration: none;
     }
 
@@ -236,7 +236,7 @@
     }
 
     .org-link-item:hover {
-      background: rgba(45, 91, 227, 0.06);
+      background: rgba(37, 99, 214, 0.09);
       text-decoration: none;
     }
 
@@ -313,12 +313,13 @@
     }
 
     .org-section-label {
-      font-size: 0.85rem;
-      font-weight: 600;
-      color: var(--color-text-muted);
+      font-size: 1rem;
+      font-weight: 700;
+      color: var(--color-text-secondary);
       text-transform: uppercase;
       letter-spacing: 0.05em;
-      margin-top: 1.5rem;
+      text-align: center;
+      margin-top: 2rem;
       margin-bottom: 0.75rem;
       padding-bottom: 0.5rem;
       border-bottom: 1px solid var(--color-border-light);
@@ -361,7 +362,7 @@
     }
 
     .deadline-item:hover {
-      background: rgba(45, 91, 227, 0.06);
+      background: rgba(37, 99, 214, 0.09);
       text-decoration: none;
     }
 
@@ -686,6 +687,12 @@
         }
       });
 
+      // Catalog heading
+      var catalogLabel = document.createElement("div");
+      catalogLabel.className = "org-section-label";
+      catalogLabel.textContent = "Catalog";
+      container.appendChild(catalogLabel);
+
       // Render each org
       orgs.forEach(function(org) {
         var key = normalizeUrl(org.url);
@@ -902,7 +909,7 @@
           });
           var data = await resp.json();
           if (resp.ok) {
-            msg.textContent = "You're subscribed! Check your email to confirm.";
+            msg.textContent = "Yes! Check your email to confirm sign up!";
             msg.className = "newsletter-msg success";
             form.reset();
           } else {
